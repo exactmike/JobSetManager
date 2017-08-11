@@ -34,11 +34,12 @@
     ResultsVariableName = 'CustomUserObjects' #name of the output variable to which the output will be received 
     ResultsKeyVariableNames = @() #if output is a hashtable and you want to have variables for different keys, use this
     JobResultsValidation = [hashtable]@{
-        ExpectedType = 'objecttypeExpected'
-        ElementCountValidationExpression = '-gt 1'
-        ElementMembersExpected = @()
+        ValidateType = [array]
+        ValidateElementCountExpression = '-gt 1'
+        ValidateElementMember = @()
+        ValidatePath = $true
+        ValidateScript = [scriptblock]{}
     }
     RemoveVariablesAtCompletion = @('ADUsers','GroupRoleMapHashByDN','OPGUIDToOLGUIDHashByOPGUID','OLMailboxesHashByEDGUID','NotesUsersHashByInternetAddress') #loop removes these variables on successful completion of the job
-    JobValidation = [scriptblock]{} #to be implemented.  does nothing now.  For more complex job validation scenarios.
     PostJobCommands = [ScriptBlock]{} #this code runs after the job successfully completes.  runs in the control runspace
 }

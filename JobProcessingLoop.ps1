@@ -41,6 +41,7 @@ Do
     $CurrentlyExistingRSJobs = @(Get-RSJob)
     $AllCurrentJobs = $CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $CompletedJobs.Keys}
     $newlyCompletedRSJobs = $AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true}
+    $newlyFailedDefinedJobs = @()
     #Check for jobs that meet their start criteria
     $JobsToStartFilter = [scriptblock]{
         ($_.Name -notin $completedJobs.Keys) -and
@@ -59,8 +60,58 @@ Do
             Update-ProcessStatus -Job $Job.name -Message $message -Status $true
         }
         #Start the jobs
-        foreach ($job in $JobsToStart)
+        :nextJobToStart foreach ($job in $JobsToStart)
         {
+            #Prepare the Start-RSJob Parameters
+            $StartRSJobParams = $job.StartRSJobParams
+            $StartRSJobParams.Name = $job.Name
+            $StartRSJobParams.Batch = $job.Name
+            #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartRSJobParameters property)
+            if ($job.ArgumentList.count -ge 1)
+            {
+                $message = "$($job.Name): Found ArgumentList to populate with live variables."
+                Write-Log -Message $message -EntryType Notification
+                try
+                {
+                    $StartRSJobParams.ArgumentList = @(
+                        foreach ($a in $job.ArgumentList)
+                        {
+                            $message = "$($job.Name): Get Argument List Variable $a"
+                            Write-Log -Message $message -EntryType Attempting
+                            Get-Variable -Name $a -ValueOnly -ErrorAction Stop
+                            Write-Log -Message $message -EntryType Succeeded                                    
+                        }
+                    )
+                }
+                catch
+                {
+                    $myerror = $_.tostring()
+                    Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+                    Write-Log -Message $myerror -ErrorLog
+                    continue nextJobToStart
+                }
+            }
+            #Run the PreJobCommands
+            if ([string]::IsNullOrWhiteSpace($job.PreJobCommands) -eq $false)
+            {
+                $message = "$($job.Name): Found PreJobCommands to run."
+                Write-Log -Message $message -EntryType Notification
+                $message = "$($job.Name): Run PreJobCommands"
+                try
+                {
+                    Write-Log -Message $message -EntryType Attempting
+                    . $($job.PreJobCommands)
+                    Write-Log -Message -EntryType Succeeded
+                }
+                catch
+                {
+                    $myerror = $_.tostring()
+                    Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+                    Write-Log -Message $myerror -ErrorLog
+                    continue nextJobToStart
+                }
+            }
+            #if the job definition calls for splitting the workload among several jobs     
             if ($job.JobSplit -gt 1)
             {
                 try
@@ -75,7 +126,7 @@ Do
                     $myerror = $_.tostring()
                     Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                     Write-Log -Message $myerror -ErrorLog
-                    #Throw("$($job.Name): Failed to get data to start required job")
+                    continue nextJobToStart
                 }
                 try
                 {
@@ -89,27 +140,13 @@ Do
                     $myerror = $_.tostring()
                     Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                     Write-Log -Message $myerror -ErrorLog
-                    #Throw("$($job.Name): Failed to split data to start required job")
-                }
-                if ([string]::IsNullOrWhiteSpace($job.PreJobCommands) -eq $false)
-                {
-                    . $($job.PreJobCommands)
+                    continue nextJobToStart
                 }
                 $splitjobcount = 0
                 foreach ($split in $splitGroups)
                 {
                     $splitjobcount++
                     $YourSplitData = $DataToSplit[$($split.start)..$($split.end)]
-                    $StartRSJobParams = $job.StartRSJobParams
-                    $StartRSJobParams.Name = $job.Name
-                    $StartRSJobParams.Batch = $job.Name
-                    if ($job.ArgumentList.count -ge 1)
-                    {
-                        $StartRSJobParams.ArgumentList = @(
-                            foreach ($a in $job.ArgumentList)
-                            {Get-Variable -Name $a -ValueOnly}
-                        )
-                    }
                     try
                     {
                         $message = "$($job.Name): Start Batch Job $splitjobcount of $($job.JobSplit)"
@@ -124,28 +161,16 @@ Do
                         Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                         Write-Log -Message $myerror -ErrorLog
                         Update-ProcessStatus -Job $Job.name -Message $message -Status $false
-                        #Throw("$($job.Name): Failed to start a required job")
+                        continue nextJobToStart
                     }
                 }
             }
+            #otherwise just start one job
             else
-            {
-                if ([string]::IsNullOrWhiteSpace($job.PreJobCommands) -eq $false)
-                {
-                    . $($job.PreJobCommands)
-                }                
+            {      
                 try
                 {
-                    $message = "$($job.Name): Start Job"
-                    $StartRSJobParams = $job.StartRSJobParams
-                    $StartRSJobParams.Name = $job.name
-                    if ($job.ArgumentList.count -ge 1)
-                    {
-                        $StartRSJobParams.ArgumentList = @(
-                            foreach ($a in $job.ArgumentList)
-                            {Get-Variable -Name $a -ValueOnly}
-                        )
-                    }                    
+                    $message = "$($job.Name): Start Job"                 
                     Write-Log -Message $message -EntryType Attempting -Verbose
                     Start-RSJob @StartRSJobParams | Out-Null
                     Write-Log -Message $message -EntryType Succeeded -Verbose              
@@ -157,7 +182,7 @@ Do
                     Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                     Write-Log -Message $myerror -ErrorLog
                     Update-ProcessStatus -Job $Job.name -Message $message -Status $false
-                    #Throw("$($job.Name): Failed to start a required job")
+                    continue nextJobToStart
                 }
             }
         }
@@ -218,69 +243,102 @@ Do
     }
     if ($newlyCompletedJobs.Count -ge 1)
     {
-        Write-Log -Message "Found $($newlyCompletedJobs.Count) Newly Completed Job to Process: $($newlyCompletedJobs.Name -join ',')" -Verbose -EntryType Notification
+        Write-Log -Message "Found $($newlyCompletedJobs.Count) Newly Completed Defined Job(s) to Process: $($newlyCompletedJobs.Name -join ',')" -Verbose -EntryType Notification
     }
-    :nextncj foreach ($DefinedJob in $newlyCompletedJobs)
+    :nextDefinedJob foreach ($DefinedJob in $newlyCompletedJobs)
     {
         $ThisDefinedJobSuccessfullyCompleted = $false
-        Write-Log -Message "$($DefinedJob.name): RSJob Newly completed" -Verbose -EntryType Notification
-        #get/match the rs job to the definition here
-        Write-Log -Message "$($ncj.name): Matched newly completed job to job metadata $($DefinedJob.Name)" -entrytype Notification -Verbose        
-        #Receive the RS Job Results if all related jobs are done
-        if ($DefinedJob.JobSplit -gt 1)
+        Write-Log -Message "$($DefinedJob.name): RS Job Newly completed" -Verbose -EntryType Notification
+        $message = "$($DefinedJob.name): Match newly completed RSJob to Defined Job."
+        try
         {
-            try 
+            Write-Log -Message $message -EntryType Attempting
+            $RSJobs = @(Get-RSJob -Name $DefinedJob.Name -ErrorAction Stop)
+            Write-Log -Message $message -EntryType Succeeded
+        }
+        catch
+        {
+            $myerror = $_
+            Write-Log -Message $message -EntryType Failed -ErrorLog
+            Write-Log -Message $myerror.tostring() -ErrorLog
+            continue nextDefinedJob
+        }
+        if (($RSJobs.Count -eq $DefinedJob.JobSplit) -eq $false)
+        {
+            $message = "$($DefinedJob.name): RSJob Count does not match Defined Job SplitJob specification."
+            Write-Log -Message $message -ErrorLog -EntryType Failed
+            continue nextDefinedJob
+        }
+        #Log any Errors from the RS Job
+        if ($RSJobs.HasErrors -contains $true)
+        {
+            $message = "$($DefinedJob.Name): has errors"
+            Write-Log -Message $message -ErrorLog
+            $ErrorStrings = $RSJobs.Error | ForEach-Object -Process {$_.ToString()}
+            Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog
+        }#if        
+        #Receive the RS Job Results to generic JobResults variable.  
+        try 
+        {
+            $message = "$($DefinedJob.Name): Receive Results to Generic JobResults variable pending validation"
+            Write-Log -Message $message -entrytype Attempting -Verbose
+            $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop            
+            Write-Log -Message $message -entrytype Succeeded -Verbose
+            Update-ProcessStatus -Job $Job.name -Message $message -Status $true
+        }
+        catch
+        {
+            $myerror = $_.tostring()
+            Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+            Write-Log -Message $myerror -ErrorLog
+            $NewlyFailedDefinedJobs += $DefinedJob
+            Update-ProcessStatus -Job $Job.name -Message $message -Status $false
+            Continue nextDefinedJob
+        }
+        #Validate the JobResultsVariable
+        if ($DefinedJob.JobResultsValidation.count -gt 0)
+        {
+            $message = "$($DefinedJob.Name): Found Validation Tests to perform for JobResults"
+            Write-Log -Message $message -EntryType Notification
+            $message = "$($DefinedJob.Name): Test JobResults for Validations ($($DefinedJob.JobResultsValidation.Keys -join ','))"
+            Write-Log -Message $message -EntryType Notification
+            switch (Test-JobResult -JobResultsValidation $DefinedJob.JobResultsValidation -JobResults $JobResults)
             {
-                $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
-                Write-Log -Message $message -entrytype Attempting -Verbose
-                $JobResults = Receive-RSJob -Job $BatchRSJobs -ErrorAction Stop
-                #if ($JobResults.count -lt 1)
-                #{
-                #    $NewlyFailedJobs += $($BatchRSJobs | Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'GenerateResults')
-                #    Continue nextDefinedJob
-                #}
-                Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop                      
-                Write-Log -Message $message -entrytype Succeeded -Verbose
-                $ThisDefinedJobSuccessfullyCompleted = $true
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $true
-            }
-            catch
-            {
-                $myerror = $_.tostring()
-                Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                Write-Log -Message $myerror -ErrorLog
-                $NewlyFailedJobs += $($BatchRSJobs |  Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'RSJobReceiveResults')
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $false
-                Continue nextDefinedJob
+                $true
+                {
+                    $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.JobResultsValidation.Keys -join ','))"
+                    Write-Log -Message $message -EntryType Succeeded
+                }
+                $false
+                {
+                    $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.JobResultsValidation.Keys -join ','))"   
+                    Write-Log -Message $message -EntryType Failed
+                    $newlyFailedDefinedJobs += $DefinedJob
+                    continue nextDefinedJob
+                }
             }
         }
         else
         {
-            try 
-            {
-                $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
-                Write-Log -Message $message -entrytype Attempting -Verbose
-                $JobResults = Receive-RSJob -Job $DefinedJob -ErrorAction Stop
-                #need to specify in the job the expected results to test for...
-                #if ($JobResults.count -lt 1)
-                #{
-                #    $NewlyFailedJobs += $($DefinedJob | Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'GenerateResults')
-                #    Continue nextDefinedJob
-                #}
-                Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop
-                Write-Log -Message $message -entrytype Succeeded -Verbose
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $true
-                $ThisDefinedJobSuccessfullyCompleted = $true                
-            }
-            catch
-            {
-                $myerror = $_.tostring()
-                Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                Write-Log -Message $myerror -ErrorLog
-                $NewlyFailedJobs += $($DefinedJob |  Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'RSJobReceiveResults')
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $false
-                Continue nextDefinedJob
-            }
+            $message = "$($DefinedJob.Name): No Validation Tests defined for JobResults"
+            Write-Log -Message $message -EntryType Notification            
+        }
+        $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
+        Try
+        {
+            Write-Log -Message $message -EntryType Attempting
+            Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop
+            Write-Log -Message $message -EntryType Succeeded
+            $ThisDefinedJobSuccessfullyCompleted = $true            
+        }
+        catch
+        {
+            $myerror = $_.tostring()
+            Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+            Write-Log -Message $myerror -ErrorLog
+            $NewlyFailedDefinedJobs += $DefinedJob
+            Update-ProcessStatus -Job $Job.name -Message $message -Status $false
+            Continue nextDefinedJob
         }
         if ($DefinedJob.ResultsKeyVariableNames.count -ge 1)
         {
@@ -299,7 +357,7 @@ Do
                     $myerror = $_.tostring()
                     Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                     Write-Log -Message $myerror -ErrorLog                    
-                    $NewlyFailedJobs += $($DefinedJob |  Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'RSJobReceiveSubResults')
+                    $newlyFailedDefinedJobs += $($DefinedJob |  Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'RSJobReceiveSubResults')
                     $ThisDefinedJobSuccessfullyCompleted = $false
                     Continue nextDefinedJob
                 }
@@ -307,55 +365,26 @@ Do
         }
         if ($ThisDefinedJobSuccessfullyCompleted -eq $true)
         {
-            Update-ProcessStatus -Job $Job.name -Message 'Job Successfully Completed' -Status $true            
-            if ($DefinedJob.JobSplit -gt 1)
-            {
-                if ($BatchRSJobs | Test-All -EvaluateCondition {$_.hasErrors -eq $true})
-                {
-                    $message = "$($DefinedJob): Some Job(s) have errors"
-                    Write-Log -Message $message -ErrorLog                           
-                    $ErrorStrings = $BatchRSJobs | ForEach-Object -Process {
-                        $_.Error.getenumerator() | ForEach-Object -Process {$_.tostring()}
-                    }
-                    Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog                    
-                }
-            }
-            else
-            {
-                #Log any Errors from the RS Job
-                if ($DefinedJob.HasErrors -eq $true)
-                {
-                    $message = "$($DefinedJob.Name): has errors"
-                    Write-Log -Message $message -ErrorLog
-                    $ErrorStrings = $DefinedJob.Error.getenumerator()| ForEach-Object -Process {$_.ToString()}
-                    Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog
-                }#if             
-            }
+            Update-ProcessStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true            
             $CompletedJobs.$($DefinedJob.name) = $true
             #Run PostJobCommands
-            if ([string]::IsNullOrWhiteSpace($job.PostJobCommands) -eq $false)
+            if ([string]::IsNullOrWhiteSpace($DefinedJob.PostJobCommands) -eq $false)
             {
-                . $($job.PostJobCommands)
+                . $($DefinedJob.PostJobCommands)
             }
             #Remove Jobs and Variables
-            if ($DefinedJob.JobSplit -gt 1)
-            {
-                Remove-RSJob -Job $BatchRSJobs
-            }
-            else
-            {
-                Remove-RSJob -Job $ncj                
-            }
-            Remove-Variable -Name JobResults
+            Remove-RSJob $RSJobs
             if ($DefinedJob.RemoveVariablesAtCompletion.count -gt 0)
             {
                 $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
                 Write-Log -Message $message -EntryType Notification -Verbose
                 Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion
             }
+            Remove-Variable -Name JobResults              
             [gc]::Collect()
             Start-Sleep -Seconds 10
         }#if $thisDefinedJobSuccessfullyCompleted
+        #remove variables JobResults,SplitData,YourSplitData . . .
     }#foreach
     if ($newlyCompletedJobs.Count -ge 1)
     {

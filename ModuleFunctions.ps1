@@ -39,8 +39,76 @@ function Test-JobCondition
         }
     }
 }
+function Test-JobResult
+{
+    [cmdletbinding()]
+    param
+    (
+        [parameter(Mandatory)]
+        [hashtable]$JobResultsValidation
+        ,
+        [parameter(Mandatory)]
+        $JobResults
+    )
+    if
+    (
+        @(
+            switch ($JobResultsValidation.Keys)
+            {
+                'ValidateType'
+                {
+                    $JobResults -is $JobResultsValidation.$_
+                }
+                'ValidateElementCountExpression'
+                {
+                    Invoke-Expression "$($JobResults.count) $($JobResultsValidation.$_)"
+                }
+                'ValidateElementMember'
+                {
+                    $MemberNames = @($JobResults[0] | Get-Member -MemberType Properties | Select-Object -ExpandProperty Name)
+                    if
+                    (
+                        @(
+                            switch ($JobResultsValidation.$_)
+                            {
+                                {$_ -in $MemberNames}
+                                {Write-Output -InputObject $true}
+                                {$_ -notin $MemberNames}
+                                {Write-Output -InputObject $false}
+                            }
+                        ) -contains $false
+                    )
+                    {Write-Output -InputObject $false}
+                    else
+                    {Write-Output -InputObject $true}
+                }
+                'ValidatePath'
+                {
+                    Test-Path -path $JobResults
+                }
+            }
+        ) -contains $false
+    )
+    {
+        Write-Output -InputObject $false
+    }
+    else
+    {
+        Write-output -inputObject $true    
+    }
+}
+################################
+#to develop
+###############################
 function Import-JobDefinitions
 {
     $PossibleJobsFilePath = Join-Path (Get-ADExtractVariableValue PSScriptRoot) 'RSJobDefinitions.ps1'
     $PossibleJobs = &$PossibleJobsFilePath
+}
+function Update-ProcessStatus
+{
+    param($Job,$Message,$Status)
+    if ((Test-Path 'variable:ProcessStatus') -eq $false)
+    {$ProcessStatus = @()}
+    $ProcessStatus += [pscustomobject]@{TimeStamp = Get-TimeStamp; Job = $Job; Message = $Message;Status = $Status}
 }
