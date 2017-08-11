@@ -7,11 +7,14 @@
     ArgumentList='' #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
     StartRSJobParams = @{
         ErrorAction = 'Stop'  #optional, recommended to stop
-        FunctionsToLoad = @('Convert-ADUserToCustomUserObject','Convert-ProxyAddressToZLTypeAlias','Get-AdObjectDomain','Test-IDAvailability','Test-ProxyAddressAvailability') 
+        FunctionsToLoad = @('Convert-ADUserToCustomUserObject','Convert-ProxyAddressToCustomAlias','Get-AdObjectDomain','Test-IDAvailability','Test-ProxyAddressAvailability') 
+        ModulesToImport = @() #optional
+        PSSnapinsToImport = @()
         ArgumentList = $decoystring,$TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound #due to a bug in poshRSJob, first argument is thrown away, these must exist when the job metadata object is created or they will be NULL
+        Throttle = 5 #optional
         ScriptBlock = [ScriptBlock]{ #scriptblock for the job to run
             param($TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound)#note first argument is not referenced
-            $ADExtractSettings = $using:ADExtractSettings #you can use arguments with param() block along with $using:
+            $Settings = $using:Settings #you can use arguments with param() block along with $using:
             $ADUsers = $using:YourSplitData | Select-Object -Property *
             $ConvertADUsersToCustomUserObjectParams = @{
                 ADUser = $ADUsers

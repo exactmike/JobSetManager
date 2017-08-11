@@ -372,7 +372,7 @@ Do
     $CurrentlyRunningJobs = $AllCurrentJobs | Select-Object -ExpandProperty Name
     Write-Verbose -Message "Currently Running Jobs: $(($CurrentlyRunningJobs | sort-object) -join ',')" -Verbose
     Write-Verbose -Message "==========================================================================" -Verbose
-    Start-Sleep -Seconds $ADExtractSettings.SleepSecondsBetweenRSJobCheck
+    Start-Sleep -Seconds $Settings.SleepSecondsBetweenRSJobCheck
 }
 Until
 (((Compare-Object -DifferenceObject @($CompletedJobs.Keys) -ReferenceObject @($RequiredJobs.Name)) -eq $null))
