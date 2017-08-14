@@ -290,22 +290,22 @@ Do
             Continue nextDefinedJob
         }
         #Validate the JobResultsVariable
-        if ($DefinedJob.JobResultsValidation.count -gt 0)
+        if ($DefinedJob.ResultsValidation.count -gt 0)
         {
             $message = "$($DefinedJob.Name): Found Validation Tests to perform for JobResults"
             Write-Log -Message $message -EntryType Notification
-            $message = "$($DefinedJob.Name): Test JobResults for Validations ($($DefinedJob.JobResultsValidation.Keys -join ','))"
+            $message = "$($DefinedJob.Name): Test JobResults for Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
             Write-Log -Message $message -EntryType Notification
-            switch (Test-JobResult -JobResultsValidation $DefinedJob.JobResultsValidation -JobResults $JobResults)
+            switch (Test-JobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
             {
                 $true
                 {
-                    $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.JobResultsValidation.Keys -join ','))"
+                    $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
                     Write-Log -Message $message -EntryType Succeeded
                 }
                 $false
                 {
-                    $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.JobResultsValidation.Keys -join ','))"   
+                    $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"   
                     Write-Log -Message $message -EntryType Failed
                     $newlyFailedDefinedJobs += $DefinedJob
                     continue nextDefinedJob

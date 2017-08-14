@@ -33,7 +33,7 @@
     OnNotCondition = @() #this determines if the job should be run, any values here need to be false in Conditions
     ResultsVariableName = 'CustomUserObjects' #name of the output variable to which the output will be received 
     ResultsKeyVariableNames = @() #if output is a hashtable and you want to have variables for different keys, use this
-    JobResultsValidation = [hashtable]@{
+    ResultsValidation = [hashtable]@{
         ValidateType = [array]
         ValidateElementCountExpression = '-gt 1'
         ValidateElementMember = @()
