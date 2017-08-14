@@ -58,7 +58,6 @@ Do
             #Prepare the Start-RSJob Parameters
             $StartRSJobParams = $job.StartRSJobParams
             $StartRSJobParams.Name = $job.Name
-            $StartRSJobParams.Batch = $job.Name
             #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartRSJobParameters property)
             if ($job.ArgumentList.count -ge 1)
             {
@@ -108,6 +107,7 @@ Do
             if ($job.JobSplit -gt 1)
             {
                 $StartRSJobParams.Throttle = $job.JobSplit
+                $StartRSJobParams.Batch = $job.Name                
                 try
                 {
                     $message = "$($job.Name): Get the data to split from variable $($job.jobsplitDataVariableName)"
