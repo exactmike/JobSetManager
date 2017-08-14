@@ -49,6 +49,9 @@ function Test-JobResult
         ,
         [parameter(Mandatory)]
         $JobResults
+        ,
+        [parameter()]
+        [string]$JobName
     )
     if
     (
@@ -57,34 +60,88 @@ function Test-JobResult
             {
                 'ValidateType'
                 {
-                    $JobResults -is $JobResultsValidation.$_
+                    $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                    Write-Log -Message $message -EntryType Attempting
+                    $Result = $JobResults -is $JobResultsValidation.$_
+                    if ($Result -eq $true)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                        Write-Log -Message $message -EntryType Succeeded
+                    }
+                    if ($Result -eq $false)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                        Write-Log -Message $message -EntryType Failed
+                    }
+                    Write-Output -InputObject $Result
                 }
                 'ValidateElementCountExpression'
                 {
-                    Invoke-Expression "$($JobResults.count) $($JobResultsValidation.$_)"
+                    $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                    Write-Log -Message $message -EntryType Attempting
+                    $Result = Invoke-Expression "$($JobResults.count) $($JobResultsValidation.$_)"
+                    if ($Result -eq $true)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_)). Result Count: $($JobResults.count)"
+                        Write-Log -Message $message -EntryType Succeeded
+                    }
+                    if ($Result -eq $false)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_)). Result Count: $($JobResults.count)"
+                        Write-Log -Message $message -EntryType Failed
+                    }
+                    Write-Output -InputObject $Result
                 }
                 'ValidateElementMember'
                 {
-                    $MemberNames = @($JobResults[0] | Get-Member -MemberType Properties | Select-Object -ExpandProperty Name)
-                    if
-                    (
-                        @(
-                            switch ($JobResultsValidation.$_)
-                            {
-                                {$_ -in $MemberNames}
-                                {Write-Output -InputObject $true}
-                                {$_ -notin $MemberNames}
-                                {Write-Output -InputObject $false}
-                            }
-                        ) -contains $false
+                    $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                    Write-Log -Message $message -EntryType Attempting                    
+                    $Result = $(
+                        $MemberNames = @($JobResults[0] | Get-Member -MemberType Properties | Select-Object -ExpandProperty Name)
+                        if
+                        (
+                            @(
+                                switch ($JobResultsValidation.$_)
+                                {
+                                    {$_ -in $MemberNames}
+                                    {Write-Output -InputObject $true}
+                                    {$_ -notin $MemberNames}
+                                    {Write-Output -InputObject $false}
+                                }
+                            ) -contains $false
+                        )
+                        {Write-Output -InputObject $false}
+                        else
+                        {Write-Output -InputObject $true}
                     )
-                    {Write-Output -InputObject $false}
-                    else
-                    {Write-Output -InputObject $true}
+                    if ($Result -eq $true)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                        Write-Log -Message $message -EntryType Succeeded
+                    }
+                    if ($Result -eq $false)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                        Write-Log -Message $message -EntryType Failed
+                    }
+                    Write-Output -InputObject $Result
                 }
                 'ValidatePath'
                 {
-                    Test-Path -path $JobResults
+                    $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                    Write-Log -Message $message -EntryType Attempting                    
+                    $Result = Test-Path -path $JobResults
+                    if ($Result -eq $true)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                        Write-Log -Message $message -EntryType Succeeded
+                    }
+                    if ($Result -eq $false)
+                    {
+                        $message = "$($DefinedJob.Name): Validation $_ ($($jobresultsValidation.$_))"
+                        Write-Log -Message $message -EntryType Failed
+                    }
+                    Write-Output -InputObject $Result                    
                 }
             }
         ) -contains $false

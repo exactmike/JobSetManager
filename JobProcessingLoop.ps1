@@ -1,18 +1,11 @@
-#Parameters to add:  Conditions Array (like condition = $true), JobDefinitionsPath, VariablesToCreate,Interactive,Settings
+#Parameters to add:  Conditions Array (like condition = $true), JobDefinitionsPath, Interactive,Settings
 param(
     $Settings
     ,
     $JobDefinitions
     ,
-    $VariablesToCreate
-    ,
     [switch]$Interactive
 )
-#Should conditions be non-boolean capable?
-##################################################################
-#Create required variables (for use in Jobs/JobArguments)
-##################################################################
-
 ##################################################################
 #Define all Required Jobs
 ##################################################################
@@ -37,7 +30,7 @@ $FailedJobs = @{} #Will add JobName as Key and value as array of failures that o
 ##################################################################
 Do
 {
-    #Check for jobs that have failed too many times so that we need to abort the processing
+    #Get existing jobs and check for those that are running and/or newly completed
     $CurrentlyExistingRSJobs = @(Get-RSJob)
     $AllCurrentJobs = $CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $CompletedJobs.Keys}
     $newlyCompletedRSJobs = $AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true}
@@ -114,6 +107,7 @@ Do
             #if the job definition calls for splitting the workload among several jobs     
             if ($job.JobSplit -gt 1)
             {
+                $StartRSJobParams.Throttle = $job.JobSplit
                 try
                 {
                     $message = "$($job.Name): Get the data to split from variable $($job.jobsplitDataVariableName)"
@@ -323,9 +317,9 @@ Do
             $message = "$($DefinedJob.Name): No Validation Tests defined for JobResults"
             Write-Log -Message $message -EntryType Notification            
         }
-        $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
         Try
         {
+            $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"            
             Write-Log -Message $message -EntryType Attempting
             Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop
             Write-Log -Message $message -EntryType Succeeded
@@ -372,15 +366,22 @@ Do
             {
                 . $($DefinedJob.PostJobCommands)
             }
-            #Remove Jobs and Variables
-            Remove-RSJob $RSJobs
-            if ($DefinedJob.RemoveVariablesAtCompletion.count -gt 0)
+            #Remove Jobs and Variables - expand the try catch to each operation (job removal and variable removal)
+            try
             {
-                $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
-                Write-Log -Message $message -EntryType Notification -Verbose
-                Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion
+                Remove-RSJob $RSJobs -ErrorAction Stop
+                if ($DefinedJob.RemoveVariablesAtCompletion.count -gt 0)
+                {
+                    $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
+                    Write-Log -Message $message -EntryType Notification -Verbose
+                    Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop
+                }
+                Remove-Variable -Name JobResults -ErrorAction Stop                  
             }
-            Remove-Variable -Name JobResults              
+            catch
+            {
+                
+            }
             [gc]::Collect()
             Start-Sleep -Seconds 10
         }#if $thisDefinedJobSuccessfullyCompleted
@@ -391,16 +392,19 @@ Do
         Write-Log -Message "Finished Processing Newly Completed Jobs" -EntryType Notification -Verbose
     }
     #do something here with NewlyFailedJobs
-    Write-Verbose -Message "==========================================================================" -Verbose
-    Write-Verbose -Message "$(Get-Date)" -Verbose
-    Write-Verbose -Message "==========================================================================" -Verbose
-    Write-Verbose -Message "Completed Jobs: $(($completedJobs.Keys | sort-object) -join ',' )" -Verbose
-    Write-Verbose -Message "==========================================================================" -Verbose
-    $WaitingOnJobs = $RequiredJobs.name | Where-Object -FilterScript {$_ -notin $CompletedJobs.Keys}
-    $AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $CompletedJobs.Keys}
-    $CurrentlyRunningJobs = $AllCurrentJobs | Select-Object -ExpandProperty Name
-    Write-Verbose -Message "Currently Running Jobs: $(($CurrentlyRunningJobs | sort-object) -join ',')" -Verbose
-    Write-Verbose -Message "==========================================================================" -Verbose
+    if ($Interactive)
+    {
+        Write-Verbose -Message "==========================================================================" -Verbose
+        Write-Verbose -Message "$(Get-Date)" -Verbose
+        Write-Verbose -Message "==========================================================================" -Verbose
+        Write-Verbose -Message "Completed Jobs: $(($completedJobs.Keys | sort-object) -join ',' )" -Verbose
+        Write-Verbose -Message "==========================================================================" -Verbose
+        $WaitingOnJobs = $RequiredJobs.name | Where-Object -FilterScript {$_ -notin $CompletedJobs.Keys}
+        $AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $CompletedJobs.Keys}
+        $CurrentlyRunningJobs = $AllCurrentJobs | Select-Object -ExpandProperty Name
+        Write-Verbose -Message "Currently Running Jobs: $(($CurrentlyRunningJobs | sort-object) -join ',')" -Verbose
+        Write-Verbose -Message "==========================================================================" -Verbose
+    }
     Start-Sleep -Seconds $Settings.SleepSecondsBetweenRSJobCheck
 }
 Until
