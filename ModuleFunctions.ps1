@@ -169,3 +169,16 @@ function Update-ProcessStatus
     {$ProcessStatus = @()}
     $ProcessStatus += [pscustomobject]@{TimeStamp = Get-TimeStamp; Job = $Job; Message = $Message;Status = $Status}
 }
+function get-yumldependencydiagram
+{
+    $(
+    foreach ($job in $Jobs)
+    {
+        $JobName = $job | Select-Object -ExpandProperty Name
+        $jobReferences = $job | Select-Object -ExpandProperty DependsOnJobs
+        foreach ($jref in $jobReferences)    
+        {
+            "[" + $JobName + "] -> [" + $jref + "]"
+        }
+    }) -join ','
+}
