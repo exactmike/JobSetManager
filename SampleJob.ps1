@@ -38,7 +38,7 @@
         ValidateElementCountExpression = '-gt 1'
         ValidateElementMember = @()
         ValidatePath = $true
-        ValidateScript = [scriptblock]{}
+        ValidateScript = [scriptblock]{} #Not implemented yet . . .
     }
     RemoveVariablesAtCompletion = @('ADUsers','GroupRoleMapHashByDN','OPGUIDToOLGUIDHashByOPGUID','OLMailboxesHashByEDGUID','NotesUsersHashByInternetAddress') #loop removes these variables on successful completion of the job
     PostJobCommands = [ScriptBlock]{} #this code runs after the job successfully completes.  runs in the control runspace
