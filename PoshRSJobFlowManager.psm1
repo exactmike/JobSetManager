@@ -175,13 +175,13 @@ function Invoke-JobProcessingLoop
         ,
         [switch]$RetainFailedJobs
         ,
-        [switch]$LoopOnce
+        [switch]$LoopOnce        
     )
     ##################################################################
     #Define all Required Jobs
     ##################################################################
-    #Only the jobs that meet the settings conditions or not conditions are required
-    $RequiredJobFilter = [scriptblock] {
+     #Only the jobs that meet the settings conditions or not conditions are required
+     $RequiredJobFilter = [scriptblock] {
         (($_.OnCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Settings -TestFor $True)) -and
         (($_.OnNOTCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
     }
@@ -224,6 +224,7 @@ function Invoke-JobProcessingLoop
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
     ##################################################################
+    $stopwatch = [system.diagnostics.stopwatch]::startNew()
     Do
     {
         #Get existing jobs and check for those that are running and/or newly completed
@@ -251,9 +252,29 @@ function Invoke-JobProcessingLoop
             #Start the jobs
             :nextJobToStart foreach ($job in $JobsToStart)
             {
+                #Run the PreJobCommands
+                if ([string]::IsNullOrWhiteSpace($job.PreJobCommands) -eq $false)
+                {
+                    $message = "$($job.Name): Found PreJobCommands."
+                    Write-Log -Message $message -EntryType Notification
+                    $message = "$($job.Name): Run PreJobCommands"
+                    try
+                    {
+                        Write-Log -Message $message -EntryType Attempting
+                        . $($job.PreJobCommands)
+                        Write-Log -Message -EntryType Succeeded
+                    }
+                    catch
+                    {
+                        $myerror = $_.tostring()
+                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+                        Write-Log -Message $myerror -ErrorLog
+                        continue nextJobToStart
+                    }
+                }
                 #Prepare the Start-RSJob Parameters
                 $StartRSJobParams = $job.StartRSJobParams
-                $StartRSJobParams.Name = $job.Name
+                $StartRSJobParams.Name = $job.Name                   
                 #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartRSJobParameters property)
                 if ($job.ArgumentList.count -ge 1)
                 {
@@ -270,26 +291,6 @@ function Invoke-JobProcessingLoop
                                 Write-Log -Message $message -EntryType Succeeded                                    
                             }
                         )
-                    }
-                    catch
-                    {
-                        $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
-                        continue nextJobToStart
-                    }
-                }
-                #Run the PreJobCommands
-                if ([string]::IsNullOrWhiteSpace($job.PreJobCommands) -eq $false)
-                {
-                    $message = "$($job.Name): Found PreJobCommands to run."
-                    Write-Log -Message $message -EntryType Notification
-                    $message = "$($job.Name): Run PreJobCommands"
-                    try
-                    {
-                        Write-Log -Message $message -EntryType Attempting
-                        . $($job.PreJobCommands)
-                        Write-Log -Message -EntryType Succeeded
                     }
                     catch
                     {
@@ -555,12 +556,28 @@ function Invoke-JobProcessingLoop
             }
             if ($ThisDefinedJobSuccessfullyCompleted -eq $true)
             {
-                Update-ProcessStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true            
+                $message = "$($DefinedJob.Name): Successfully Completed"
+                Write-Log -Message $message -EntryType Notification
+                Update-ProcessStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true       
                 $script:CompletedJobs.$($DefinedJob.name) = $true
                 #Run PostJobCommands
                 if ([string]::IsNullOrWhiteSpace($DefinedJob.PostJobCommands) -eq $false)
                 {
-                    . $($DefinedJob.PostJobCommands)
+                    $message = "$($DefinedJob.Name): Found PostJobCommands."
+                    Write-Log -Message $message -EntryType Notification
+                    $message = "$($DefinedJob.Name): Run PostJobCommands"
+                    try
+                    {
+                        Write-Log -Message $message -EntryType Attempting
+                        . $($DefinedJob.PostJobCommands)
+                        Write-Log -Message -EntryType Succeeded
+                    }
+                    catch
+                    {
+                        $myerror = $_.tostring()
+                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+                        Write-Log -Message $myerror -ErrorLog
+                    }
                 }
                 #Remove Jobs and Variables - expand the try catch to each operation (job removal and variable removal)
                 try
@@ -569,17 +586,19 @@ function Invoke-JobProcessingLoop
                     if ($DefinedJob.RemoveVariablesAtCompletion.count -gt 0)
                     {
                         $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
-                        Write-Log -Message $message -EntryType Notification -Verbose
+                        Write-Log -Message $message -EntryType Attempting
                         Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop
                     }
                     Remove-Variable -Name JobResults -ErrorAction Stop                  
                 }
                 catch
                 {
-                    
+                    $myerror = $_.tostring()
+                    Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+                    Write-Log -Message $myerror -ErrorLog                 
                 }
                 [gc]::Collect()
-                Start-Sleep -Seconds 10
+                Start-Sleep -Seconds 5
             }#if $thisDefinedJobSuccessfullyCompleted
             #remove variables JobResults,SplitData,YourSplitData . . .
         }#foreach
@@ -604,7 +623,7 @@ function Invoke-JobProcessingLoop
         if ($LoopOnce -eq $true)
         {
             $StopLoop = $true
-        }
+        }        
         Start-Sleep -Seconds $Settings.SleepSecondsBetweenRSJobCheck
     }
     Until
