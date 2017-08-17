@@ -233,6 +233,7 @@ function Invoke-JobProcessingLoop
         $CurrentlyExistingRSJobs = @(Get-RSJob)
         $AllCurrentJobs = $CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
         $newlyCompletedRSJobs = $AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true}
+        $newlyCompletedJobs = @()
         $newlyFailedDefinedJobs = @()
         #Check for jobs that meet their start criteria
         $JobsToStart = @(
@@ -603,8 +604,9 @@ function Invoke-JobProcessingLoop
                         $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
                         Write-Log -Message $message -EntryType Attempting
                         Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop -Scope Global
+                        Write-Log -Message $message -EntryType Succeeded
                     }
-                    Remove-Variable -Name JobResults -ErrorAction Stop                  
+                    Remove-Variable -Name JobResults -ErrorAction Stop             
                 }
                 catch
                 {
