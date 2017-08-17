@@ -231,17 +231,17 @@ function Invoke-JobProcessingLoop
     {
         #Get existing jobs and check for those that are running and/or newly completed
         $CurrentlyExistingRSJobs = @(Get-RSJob)
-        $AllCurrentJobs = $CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $script:CompletedJobs.Keys}
+        $AllCurrentJobs = $CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
         $newlyCompletedRSJobs = $AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true}
         $newlyFailedDefinedJobs = @()
         #Check for jobs that meet their start criteria
         $JobsToStart = @(
-            $RequiredJobs | Where-Object -FilterScript {
-                ($_.Name -notin $script:CompletedJobs.Keys) -and
+            $Global:RequiredJobs | Where-Object -FilterScript {
+                ($_.Name -notin $Global:CompletedJobs.Keys) -and
                 ($_.Name -notin $AllCurrentJobs.Name) -and
                 (
                     ($_.DependsOnJobs.count -eq 0) -or
-                    (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $script:CompletedJobs.Keys -TestFor $true)
+                    (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $Global:CompletedJobs.Keys -TestFor $true)
                 )
             }
         )
@@ -403,7 +403,7 @@ function Invoke-JobProcessingLoop
                         continue nextRSJob
                     }
                     #Match the RS Job to the Job Definition
-                    $DefinedJob = @($RequiredJobs | Where-Object -FilterScript {$_.name -eq $rsJob.name})
+                    $DefinedJob = @($Global:RequiredJobs | Where-Object -FilterScript {$_.name -eq $rsJob.name})
                     if ($DefinedJob.Count -eq 1)
                     {
                         $DefinedJob = $DefinedJob[0]
@@ -627,10 +627,10 @@ function Invoke-JobProcessingLoop
             Write-Verbose -Message "==========================================================================" -Verbose
             Write-Verbose -Message "$(Get-Date)" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
-            Write-Verbose -Message "Completed Jobs: $(($script:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
+            Write-Verbose -Message "Completed Jobs: $(($Global:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
-            $Script:WaitingOnJobs = $RequiredJobs.name | Where-Object -FilterScript {$_ -notin $script:CompletedJobs.Keys}
-            $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $script:CompletedJobs.Keys}
+            $Script:WaitingOnJobs = $Global:RequiredJobs.name | Where-Object -FilterScript {$_ -notin $Global:CompletedJobs.Keys}
+            $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
             $CurrentlyRunningJobs = $script:AllCurrentJobs | Select-Object -ExpandProperty Name
             Write-Verbose -Message "Currently Running Jobs: $(($CurrentlyRunningJobs | sort-object) -join ',')" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
@@ -642,7 +642,7 @@ function Invoke-JobProcessingLoop
         Start-Sleep -Seconds $Settings.SleepSecondsBetweenRSJobCheck
     }
     Until
-    (((Compare-Object -DifferenceObject @($script:CompletedJobs.Keys) -ReferenceObject @($RequiredJobs.Name)) -eq $null) -or $StopLoop)
+    (((Compare-Object -DifferenceObject @($Global:CompletedJobs.Keys) -ReferenceObject @($Global:RequiredJobs.Name)) -eq $null) -or $StopLoop)
 }
 
 ###############################################################################################
