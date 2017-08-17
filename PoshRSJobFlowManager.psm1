@@ -475,7 +475,7 @@ function Invoke-JobProcessingLoop
             {
                 $message = "$($DefinedJob.Name): reported errors"
                 Write-Log -Message $message -ErrorLog
-                $Errors = foreach ($rsJob in $RSJobs) {$rsJob.Error.getenumerator()}
+                $Errors = foreach ($rsJob in $RSJobs) {if ($rsJob.Error.count -gt 0) {$rsJob.Error.getenumerator()}}
                 if ($Errors.count -gt 0)
                 {
                     $ErrorStrings = $Errors | ForEach-Object -Process {$_.ToString()}
