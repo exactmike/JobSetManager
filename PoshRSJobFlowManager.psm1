@@ -473,10 +473,14 @@ function Invoke-JobProcessingLoop
             #Log any Errors from the RS Job
             if ($RSJobs.HasErrors -contains $true)
             {
-                $message = "$($DefinedJob.Name): has errors"
+                $message = "$($DefinedJob.Name): reported errors"
                 Write-Log -Message $message -ErrorLog
-                $ErrorStrings = $RSJobs.Error | ForEach-Object -Process {$_.ToString()}
-                Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog
+                $Errors = foreach ($rsJob in $RSJobs) {$rsJob.Error.getenumerator()}
+                if ($Errors.count -gt 0)
+                {
+                    $ErrorStrings = $Errors | ForEach-Object -Process {$_.ToString()}
+                    Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog                    
+                }
             }#if        
             #Receive the RS Job Results to generic JobResults variable.  
             try 
