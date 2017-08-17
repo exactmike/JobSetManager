@@ -241,7 +241,7 @@ function Invoke-JobProcessingLoop
                 ($_.Name -notin $AllCurrentJobs.Name) -and
                 (
                     ($_.DependsOnJobs.count -eq 0) -or
-                    (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $Global:CompletedJobs.Keys -TestFor $true)
+                    (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $Global:CompletedJobs -TestFor $true)
                 )
             }
         )
