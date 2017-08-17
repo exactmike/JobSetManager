@@ -602,7 +602,7 @@ function Invoke-JobProcessingLoop
                     {
                         $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
                         Write-Log -Message $message -EntryType Attempting
-                        Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop
+                        Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop -Scope Global
                     }
                     Remove-Variable -Name JobResults -ErrorAction Stop                  
                 }
