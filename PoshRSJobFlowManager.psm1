@@ -641,7 +641,7 @@ function Invoke-JobProcessingLoop
         {
             $StopLoop = $true
         }        
-        Start-Sleep -Seconds $Settings.SleepSecondsBetweenRSJobCheck
+        Start-Sleep -Seconds $SleepSecondsBetweenRSJobCheck
     }
     Until
     (((Compare-Object -DifferenceObject @($Global:CompletedJobs.Keys) -ReferenceObject @($Global:RequiredJobs.Name)) -eq $null) -or $StopLoop)
