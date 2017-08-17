@@ -464,7 +464,7 @@ function Invoke-JobProcessingLoop
                 Write-Log -Message $myerror.tostring() -ErrorLog
                 continue nextDefinedJob
             }
-            if (($RSJobs.Count -eq $DefinedJob.JobSplit) -eq $false)
+            if ($DefinedJob.JobSplit -gt 1 -and ($RSJobs.Count -eq $DefinedJob.JobSplit) -eq $false)
             {
                 $message = "$($DefinedJob.name): RSJob Count does not match Defined Job SplitJob specification."
                 Write-Log -Message $message -ErrorLog -EntryType Failed
