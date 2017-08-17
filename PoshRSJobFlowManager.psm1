@@ -188,8 +188,8 @@ function Invoke-JobProcessingLoop
         (($_.OnNOTCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
     }
     $message = "Invoke-JobProcessingLoop: Filter $($jobDefinitions.count) JobDefinitions for Required Jobs"
-    $RequiredJobs = @($JobDefinitions | Where-Object -FilterScript $RequiredJobFilter)
-    if ($RequiredJobs.Count -eq 0)
+    $Global:RequiredJobs = @($JobDefinitions | Where-Object -FilterScript $RequiredJobFilter)
+    if ($Global:RequiredJobs.Count -eq 0)
     {
         Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
         Return $null
@@ -197,7 +197,7 @@ function Invoke-JobProcessingLoop
     else
     {
         Write-Log -Message $message -EntryType Succeeded
-        $message = "Invoke-JobProcessingLoop: Found $($RequiredJobs.Count) RequiredJobs as follows: $($RequiredJobs.Name -join ', ')"
+        $message = "Invoke-JobProcessingLoop: Found $($Global:RequiredJobs.Count) RequiredJobs as follows: $($Global:RequiredJobs.Name -join ', ')"
         Write-Log -Message $message -EntryType Notification
         if ($FilterJobsOnly -eq $true)
         {
@@ -207,21 +207,21 @@ function Invoke-JobProcessingLoop
     ##################################################################
     #Prep for Jobs Loop
     ##################################################################
-    if ($RetainCompletedJobs -eq $true -and ((Test-Path variable:script:CompletedJobs) -eq $true))
+    if ($RetainCompletedJobs -eq $true -and ((Test-Path variable:Global:CompletedJobs) -eq $true))
     {
         #do nothing
     }
     else
     {
-        $script:CompletedJobs = @{} #Will add JobName as Key and Value as True when a job is completed        
+        $Global:CompletedJobs = @{} #Will add JobName as Key and Value as True when a job is completed        
     }
-    if ($RetainFailedJobs -eq $true -and ((Test-Path variable:script:FailedJobs) -eq $true))
+    if ($RetainFailedJobs -eq $true -and ((Test-Path variable:Global:FailedJobs) -eq $true))
     {
         #do nothing
     }
     else
     {
-        $script:FailedJobs = @{} #Will add JobName as Key and value as array of failures that occured
+        $Global:FailedJobs = @{} #Will add JobName as Key and value as array of failures that occured
     }
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
@@ -532,7 +532,7 @@ function Invoke-JobProcessingLoop
             {
                 $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"            
                 Write-Log -Message $message -EntryType Attempting
-                Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop
+                Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
                 Write-Log -Message $message -EntryType Succeeded
                 $ThisDefinedJobSuccessfullyCompleted = $true            
             }
@@ -553,7 +553,7 @@ function Invoke-JobProcessingLoop
                     {
                         $message = "$($DefinedJob.Name): Receive Key Results to Variable $v"
                         Write-Log -Message $message -entrytype Attempting -Verbose
-                        Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop
+                        Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
                         Write-Log -Message $message -entrytype Succeeded -Verbose
                         $ThisDefinedJobSuccessfullyCompleted = $true                             
                     }
@@ -561,8 +561,9 @@ function Invoke-JobProcessingLoop
                     {
                         $myerror = $_.tostring()
                         Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog                    
-                        $newlyFailedDefinedJobs += $($DefinedJob |  Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'RSJobReceiveSubResults')
+                        Write-Log -Message $myerror -ErrorLog
+                        $NewlyFailedDefinedJobs += $DefinedJob
+                        Update-ProcessStatus -Job $Job.name -Message $message -Status $false                                                         
                         $ThisDefinedJobSuccessfullyCompleted = $false
                         Continue nextDefinedJob
                     }
@@ -573,7 +574,7 @@ function Invoke-JobProcessingLoop
                 $message = "$($DefinedJob.Name): Successfully Completed"
                 Write-Log -Message $message -EntryType Notification
                 Update-ProcessStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true       
-                $script:CompletedJobs.$($DefinedJob.name) = $true
+                $Global:CompletedJobs.$($DefinedJob.name) = $true
                 #Run PostJobCommands
                 if ([string]::IsNullOrWhiteSpace($DefinedJob.PostJobCommands) -eq $false)
                 {
@@ -630,7 +631,7 @@ function Invoke-JobProcessingLoop
             Write-Verbose -Message "==========================================================================" -Verbose
             $Script:WaitingOnJobs = $RequiredJobs.name | Where-Object -FilterScript {$_ -notin $script:CompletedJobs.Keys}
             $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $script:CompletedJobs.Keys}
-            $CurrentlyRunningJobs = $AllCurrentJobs | Select-Object -ExpandProperty Name
+            $CurrentlyRunningJobs = $script:AllCurrentJobs | Select-Object -ExpandProperty Name
             Write-Verbose -Message "Currently Running Jobs: $(($CurrentlyRunningJobs | sort-object) -join ',')" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
         }
