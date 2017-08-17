@@ -183,7 +183,7 @@ function Invoke-JobProcessingLoop
     #Define all Required Jobs
     ##################################################################
      #Only the jobs that meet the settings conditions or not conditions are required
-     $RequiredJobFilter = [scriptblock] {
+    $RequiredJobFilter = [scriptblock] {
         (($_.OnCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Settings -TestFor $True)) -and
         (($_.OnNOTCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
     }
@@ -239,7 +239,7 @@ function Invoke-JobProcessingLoop
             $RequiredJobs | Where-Object -FilterScript {
                 ($_.Name -notin $script:CompletedJobs.Keys) -and
                 ($_.Name -notin $AllCurrentJobs.Name) -and
-                (Test-JobCondition -JobConditionList `$_.DependsOnJobs -ConditionValuesObject $script:CompletedJobs.Keys -TestFor $true)
+                (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $script:CompletedJobs.Keys -TestFor $true)
             }
         )
         if ($JobsToStart.Count -ge 1)
