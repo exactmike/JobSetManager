@@ -427,7 +427,10 @@ function Invoke-JobProcessingLoop
                             }
                             else
                             {
+                            
                                 Write-Output -InputObject $DefinedJob
+                                $skipBatchJobs.$($DefinedJob.Name) = $true                                
+                                continue nextRSJob
                             }           
                         }
                         else #this is a failure that needs to be raised
