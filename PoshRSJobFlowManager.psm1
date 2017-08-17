@@ -272,7 +272,7 @@ function Invoke-JobProcessingLoop
                     {
                         Write-Log -Message $message -EntryType Attempting
                         . $($job.PreJobCommands)
-                        Write-Log -Message -EntryType Succeeded
+                        Write-Log -Message $message -EntryType Succeeded
                     }
                     catch
                     {
