@@ -584,7 +584,7 @@ function Invoke-JobProcessingLoop
                     {
                         Write-Log -Message $message -EntryType Attempting
                         . $($DefinedJob.PostJobCommands)
-                        Write-Log -Message -EntryType Succeeded
+                        Write-Log -Message $message -EntryType Succeeded
                     }
                     catch
                     {
