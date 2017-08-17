@@ -175,7 +175,9 @@ function Invoke-JobProcessingLoop
         ,
         [switch]$RetainFailedJobs
         ,
-        [switch]$LoopOnce        
+        [switch]$LoopOnce
+        ,
+        [switch]$ReportJobsToStartThenReturn
     )
     ##################################################################
     #Define all Required Jobs
@@ -233,12 +235,13 @@ function Invoke-JobProcessingLoop
         $newlyCompletedRSJobs = $AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true}
         $newlyFailedDefinedJobs = @()
         #Check for jobs that meet their start criteria
-        $JobsToStartFilter = [scriptblock]{"
-            ($_.Name -notin $script:CompletedJobs.Keys) -and
-            ($_.Name -notin $AllCurrentJobs.Name) -and
-            (Test-JobCondition -JobConditionList `$_.DependsOnJobs -ConditionValuesObject $script:CompletedJobs.Keys -TestFor $true)
-        "}
-        $JobsToStart = @($RequiredJobs | Where-Object -FilterScript $JobsToStartFilter)
+        $JobsToStart = @(
+            $RequiredJobs | Where-Object -FilterScript {
+                ($_.Name -notin $script:CompletedJobs.Keys) -and
+                ($_.Name -notin $AllCurrentJobs.Name) -and
+                (Test-JobCondition -JobConditionList `$_.DependsOnJobs -ConditionValuesObject $script:CompletedJobs.Keys -TestFor $true)
+            }
+        )
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs Ready To Start"
@@ -248,6 +251,10 @@ function Invoke-JobProcessingLoop
                 $message = "$($job.Name): Ready to Start"
                 Write-Log -message $message -entrytype Notification -verbose
                 Update-ProcessStatus -Job $Job.name -Message $message -Status $true
+            }
+            if ($ReportJobsToStartThenReturn -eq $true)
+            {
+                Return $null
             }
             #Start the jobs
             :nextJobToStart foreach ($job in $JobsToStart)
