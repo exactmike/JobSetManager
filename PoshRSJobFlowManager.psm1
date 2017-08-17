@@ -643,6 +643,54 @@ function Invoke-JobProcessingLoop
     Until
     (((Compare-Object -DifferenceObject @($script:CompletedJobs.Keys) -ReferenceObject @($RequiredJobs.Name)) -eq $null) -or $StopLoop)
 }
+
+###############################################################################################
+#Module Variables and Variable Functions
+###############################################################################################
+function Get-JobFlowManagerVariable
+{
+param
+(
+[string]$Name
+)
+    Get-Variable -Scope Script -Name $name 
+}
+function Get-JobFlowManagerVariableValue
+{
+param
+(
+[string]$Name
+)
+    Get-Variable -Scope Script -Name $name -ValueOnly
+}
+function Set-JobFlowManagerVariable
+{
+param
+(
+[string]$Name
+,
+$Value
+)
+    Set-Variable -Scope Script -Name $Name -Value $value  
+}
+function New-JobFlowManagerVariable
+{
+param 
+(
+[string]$Name
+,
+$Value
+)
+    New-Variable -Scope Script -Name $name -Value $Value
+}
+function Remove-JobFlowManagerVariable
+{
+param
+(
+[string]$Name
+)
+    Remove-Variable -Scope Script -Name $name
+}
 ################################
 #to develop
 ###############################
