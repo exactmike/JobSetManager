@@ -236,7 +236,7 @@ function Invoke-JobProcessingLoop
         $JobsToStartFilter = [scriptblock]{
             ($_.Name -notin $script:CompletedJobs.Keys) -and
             ($_.Name -notin $AllCurrentJobs.Name) -and
-            (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $script:CompletedJobs.Keys -TestFor $true)
+            (Test-JobCondition -JobConditionList `$_.DependsOnJobs -ConditionValuesObject $script:CompletedJobs.Keys -TestFor $true)
         }
         $JobsToStart = @($RequiredJobs | Where-Object -FilterScript $JobsToStartFilter)
         if ($JobsToStart.Count -ge 1)
