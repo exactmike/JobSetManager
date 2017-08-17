@@ -628,8 +628,8 @@ function Invoke-JobProcessingLoop
             Write-Verbose -Message "==========================================================================" -Verbose
             Write-Verbose -Message "Completed Jobs: $(($script:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
-            $WaitingOnJobs = $RequiredJobs.name | Where-Object -FilterScript {$_ -notin $script:CompletedJobs.Keys}
-            $AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $script:CompletedJobs.Keys}
+            $Script:WaitingOnJobs = $RequiredJobs.name | Where-Object -FilterScript {$_ -notin $script:CompletedJobs.Keys}
+            $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $script:CompletedJobs.Keys}
             $CurrentlyRunningJobs = $AllCurrentJobs | Select-Object -ExpandProperty Name
             Write-Verbose -Message "Currently Running Jobs: $(($CurrentlyRunningJobs | sort-object) -join ',')" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
