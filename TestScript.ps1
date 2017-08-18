@@ -1,11 +1,10 @@
 Import-Module oneshell
-Initialize-AdminEnvironment -NoConnections
-Import-Module PoshRSJob
-Import-Module PoshRSJobFlowManager
-$testsynchashtable1 = [hashtable]::Synchronized(@{})
-$testsynchashtable2 = [hashtable]::Synchronized(@{})
-$decoystring = 'decoystring'
-get-variable decoystring
+#Initialize-AdminEnvironment -NoConnections
+#Import-Module PoshRSJob
+Import-Module PoshRSJobFlowManager -Force
+$global:testsynchashtable1 = [hashtable]::Synchronized(@{})
+$global:testsynchashtable2 = [hashtable]::Synchronized(@{})
+$global:decoystring = 'decoystring'
 $settings = @{}
 $Jobs = @(
     [pscustomobject]@{
@@ -29,7 +28,7 @@ $Jobs = @(
         DependsOnJobs = @() #this is used to determine when the job can be run
         OnCondition = @() #this determines if the job should be run, any values here need to be true in Conditions
         OnNotCondition = @() #this determines if the job should be run, any values here need to be false in Conditions
-        ResultsVariableName = $null #name of the output variable to which the output will be received 
+        ResultsVariableName = 'null' #name of the output variable to which the output will be received 
         ResultsKeyVariableNames = @() #if output is a hashtable and you want to have variables for different keys, use this
         ResultsValidation = [hashtable]@{
         }
@@ -37,7 +36,8 @@ $Jobs = @(
         PostJobCommands = [ScriptBlock]{} #this code runs after the job successfully completes.  runs in the control runspace
     }
 )
-Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive -LoopOnce
+#test-getVariable -job $jobs[0]
+Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive 
 $decoystring
 $testsynchashtable1
 $testsynchashtable2

@@ -732,3 +732,17 @@ function get-yumldependencydiagram
         }
     }) -join ','
 }
+function test-getvariable
+{
+    param($job)
+    $ArgumentList = @(
+        foreach ($a in $job.ArgumentList)
+        {
+            $message = "$($job.Name): Get Argument List Variable $a"
+            Write-Log -Message $message -EntryType Attempting
+            Get-Variable -Name $a -ValueOnly -ErrorAction Stop
+            Write-Log -Message $message -EntryType Succeeded                                    
+        }
+    )
+    $ArgumentList
+}
