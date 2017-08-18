@@ -35,5 +35,6 @@ $Jobs = @(
     }
 )
 Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive 
+$decoystring
 $testsynchashtable1
 $testsynchashtable2
