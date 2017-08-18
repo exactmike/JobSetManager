@@ -2,6 +2,7 @@ Import-Module PoshRSJob
 Import-Module PoshRSJobFlowManager
 $testsynchashtable1 = [hashtable]::Synchronized(@{})
 $testsynchashtable2 = [hashtable]::Synchronized(@{})
+$decoystring = 'decoystring'
 $settings = @{}
 $Jobs = @(
     [pscustomobject]@{
