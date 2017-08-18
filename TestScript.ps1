@@ -1,8 +1,11 @@
+Import-Module oneshell
+Initialize-AdminEnvironment -NoConnections
 Import-Module PoshRSJob
 Import-Module PoshRSJobFlowManager
 $testsynchashtable1 = [hashtable]::Synchronized(@{})
 $testsynchashtable2 = [hashtable]::Synchronized(@{})
 $decoystring = 'decoystring'
+get-variable decoystring
 $settings = @{}
 $Jobs = @(
     [pscustomobject]@{
@@ -10,7 +13,7 @@ $Jobs = @(
         PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . . 
         JobSplit = 1 #how many jobs you want to run for your data, if 1, this is ignored
         JobSplitDataVariableName = $null #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored  
-        ArgumentList='decoystring','testsynchashtable1','testsynchashtable2' #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
+        ArgumentList=@('decoystring','testsynchashtable1','testsynchashtable2') #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
         StartRSJobParams = @{
             ErrorAction = 'Stop'  #optional, recommended to stop
             ScriptBlock = [ScriptBlock]{ #scriptblock for the job to run
@@ -34,7 +37,7 @@ $Jobs = @(
         PostJobCommands = [ScriptBlock]{} #this code runs after the job successfully completes.  runs in the control runspace
     }
 )
-Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive 
+Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive -LoopOnce
 $decoystring
 $testsynchashtable1
 $testsynchashtable2
