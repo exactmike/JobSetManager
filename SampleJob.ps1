@@ -40,6 +40,8 @@
         ValidatePath = $true
         ValidateScript = [scriptblock]{} #Not implemented yet . . .
     }
-    RemoveVariablesAtCompletion = @('ADUsers','GroupRoleMapHashByDN','OPGUIDToOLGUIDHashByOPGUID','OLMailboxesHashByEDGUID','NotesUsersHashByInternetAddress') #loop removes these variables on successful completion of the job
+    RemoveVariablesAtCompletion = @('ADUsers','GroupRoleMapHashByDN','OPGUIDToOLGUIDHashByOPGUID','OLMailboxesHashByEDGUID','NotesUsersHashByInternetAddress') #loop removes these variables on successful completion of the job, used for memory management when dealing with large data sets
     PostJobCommands = [ScriptBlock]{} #this code runs after the job successfully completes.  runs in the control runspace
 }
+#add variable dependency logic for variable deletion: DependsOnVariable attribute.  Variables would be auto-deleted after the last job that needs them is completed successfully
+#add job failure handling - needs attribute(s) on the jobs as well as handling in the processing loop

@@ -629,22 +629,29 @@ function Invoke-JobProcessingLoop
         #do something here with NewlyFailedJobs
         if ($Interactive)
         {
+            $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
+            $CurrentlyRunningJobs = $script:AllCurrentJobs | Select-Object -ExpandProperty Name            
             Write-Verbose -Message "==========================================================================" -Verbose
             Write-Verbose -Message "$(Get-Date)" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
-            Write-Verbose -Message "Completed Jobs: $(($Global:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
-            Write-Verbose -Message "==========================================================================" -Verbose
-            $Script:WaitingOnJobs = $Global:RequiredJobs.name | Where-Object -FilterScript {$_ -notin $Global:CompletedJobs.Keys}
-            $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
-            $CurrentlyRunningJobs = $script:AllCurrentJobs | Select-Object -ExpandProperty Name
             Write-Verbose -Message "Currently Running Jobs: $(($CurrentlyRunningJobs | sort-object) -join ',')" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
+            Write-Verbose -Message "Completed Jobs: $(($Global:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
+            Write-Verbose -Message "==========================================================================" -Verbose
+        }
+        if ($PeriodicReporting -eq $true)
+        {
+            #add code here to periodically report on progress via a job?
+            #$Script:WaitingOnJobs = $Global:RequiredJobs.name | Where-Object -FilterScript {$_ -notin $Global:CompletedJobs.Keys}
         }
         if ($LoopOnce -eq $true)
         {
             $StopLoop = $true
-        }        
-        Start-Sleep -Seconds $SleepSecondsBetweenRSJobCheck
+        }
+        else
+        {
+            Start-Sleep -Seconds $SleepSecondsBetweenRSJobCheck            
+        }
     }
     Until
     (((Compare-Object -DifferenceObject @($Global:CompletedJobs.Keys) -ReferenceObject @($Global:RequiredJobs.Name)) -eq $null) -or $StopLoop)
