@@ -178,11 +178,13 @@ function Invoke-JobProcessingLoop
         [switch]$LoopOnce
         ,
         [switch]$ReportJobsToStartThenReturn
+        ,
+        [int]$JobFailureRetryLimit = 3
     )
     ##################################################################
     #Define all Required Jobs
     ##################################################################
-     #Only the jobs that meet the settings conditions or not conditions are required
+    #Only the jobs that meet the settings conditions or not conditions are required
     $RequiredJobFilter = [scriptblock] {
         (($_.OnCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Settings -TestFor $True)) -and
         (($_.OnNOTCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
@@ -281,6 +283,7 @@ function Invoke-JobProcessingLoop
                         Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                         Write-Log -Message $myerror -ErrorLog
                         continue nextJobToStart
+                        $newlyFailedDefinedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'PreJobCommands'}})
                     }
                 }
                 #Prepare the Start-RSJob Parameters
@@ -391,7 +394,7 @@ function Invoke-JobProcessingLoop
             $message = "Finished Processing Jobs Ready To Start"
             Write-Log -message $message -entryType Notification -verbose
         }#if
-        #Check for jobs that need to be received and validated for marking as Complete
+        #Check for newly completed jobs that may need to be received and validated
         if ($newlyCompletedRSJobs.count -ge 1)
         {
             $skipBatchJobs = @{}
@@ -493,15 +496,15 @@ function Invoke-JobProcessingLoop
                 Write-Log -Message $message -entrytype Attempting -Verbose
                 $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop            
                 Write-Log -Message $message -entrytype Succeeded -Verbose
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $true
+                Update-ProcessStatus -Job $DefinedJob.name -Message $message -Status $true
             }
             catch
             {
                 $myerror = $_.tostring()
                 Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                 Write-Log -Message $myerror -ErrorLog
-                $NewlyFailedDefinedJobs += $DefinedJob
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $false
+                $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ReceiveRSJob'}})
+                Update-ProcessStatus -Job $DefinedJob.name -Message $message -Status $false
                 Continue nextDefinedJob
             }
             #Validate the JobResultsVariable
@@ -511,22 +514,32 @@ function Invoke-JobProcessingLoop
                 Write-Log -Message $message -EntryType Notification
                 $message = "$($DefinedJob.Name): Test JobResults for Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
                 Write-Log -Message $message -EntryType Notification
-                switch (Test-JobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
+                if ($JobResults -eq $null)
                 {
-                    $true
-                    {
-                        $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                        Write-Log -Message $message -EntryType Succeeded
-                    }
-                    $false
-                    {
-                        $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"   
-                        Write-Log -Message $message -EntryType Failed
-                        $newlyFailedDefinedJobs += $DefinedJob
-                        continue nextDefinedJob
-                    }
+                    $message = "$($DefinedJob.Name): JobResults is NULL and therefore FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"   
+                    Write-Log -Message $message -EntryType Failed
+                    $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'NullResults'}})
+                    continue nextDefinedJob                    
                 }
-            }
+                else #since JobResults is not NULL run the validation tests
+                {
+                    switch (Test-JobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
+                    {
+                        $true
+                        {
+                            $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
+                            Write-Log -Message $message -EntryType Succeeded
+                        }
+                        $false
+                        {
+                            $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"   
+                            Write-Log -Message $message -EntryType Failed
+                            $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
+                            continue nextDefinedJob
+                        }
+                    }
+                }                        
+                }
             else
             {
                 $message = "$($DefinedJob.Name): No Validation Tests defined for JobResults"
@@ -545,7 +558,7 @@ function Invoke-JobProcessingLoop
                 $myerror = $_.tostring()
                 Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                 Write-Log -Message $myerror -ErrorLog
-                $NewlyFailedDefinedJobs += $DefinedJob
+                $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
                 Update-ProcessStatus -Job $Job.name -Message $message -Status $false
                 Continue nextDefinedJob
             }
@@ -566,7 +579,7 @@ function Invoke-JobProcessingLoop
                         $myerror = $_.tostring()
                         Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                         Write-Log -Message $myerror -ErrorLog
-                        $NewlyFailedDefinedJobs += $DefinedJob
+                        $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
                         Update-ProcessStatus -Job $Job.name -Message $message -Status $false                                                         
                         $ThisDefinedJobSuccessfullyCompleted = $false
                         Continue nextDefinedJob
@@ -627,6 +640,39 @@ function Invoke-JobProcessingLoop
             Write-Log -Message "Finished Processing Newly Completed Jobs" -EntryType Notification -Verbose
         }
         #do something here with NewlyFailedJobs
+        if ($newlyFailedDefinedJobs.count -ge 1)
+        {
+            foreach ($nfdj in $newlyFailedDefinedJobs)
+            {
+                switch ($Global:FailedJobs.ContainsKey($nfdj.name))
+                {
+                    $true
+                    {
+                        $Global:FailedJobs.$($nfdj.name).FailureCount++
+                        $Global:FailedJobs.$($nfdj.name).FailureType += $nfdj.FailureType
+                    }
+                    $false
+                    {
+                        $Global:FailedJobs.$($nfdj.name) = [PSCustomObject]@{
+                            FailureCount = 1
+                            FailureType = @($nfdj.FailureType)
+                        }
+                    }
+                }
+                #if JobFailureRetryLimit exceeded then abort the loop
+                if (($nfdj.JobFailureRetryLimit -ne $null -and $Global:FailedJobs.$($nfdj.name).FailureCount -gt $nfdj.JobFailureRetryLimit) -or $Global:FailedJobs.$($nfdj.name).FailureCount -gt $JobFailureRetryLimit)
+                {
+                    $message = "$($nfdj.Name): Exceeded JobFailureRetry Limit. Ending Job Processing Loop. Failure Count: $($Global:FailedJobs.$($nfdj.name).FailureCount). FailureTypes: $($Global:FailedJobs.$($nfdj.name).FailureType -join ',')"
+                    Write-Log -Message $message -EntryType FAILED -ErrorLog
+                    $JobProcessingLoopFailure = $true
+                    $StopLoop = $true
+                }
+                else #otherwise remove the jobs and we'll try again next loop
+                {
+                    Get-RSJob -Name $nfdj.name | Remove-RSJob
+                }
+            }
+        }
         if ($Interactive)
         {
             $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
@@ -655,6 +701,14 @@ function Invoke-JobProcessingLoop
     }
     Until
     (((Compare-Object -DifferenceObject @($Global:CompletedJobs.Keys) -ReferenceObject @($Global:RequiredJobs.Name)) -eq $null) -or $StopLoop)
+    if ($JobProcessingLoopFailure)
+    {
+        Write-Output -InputObject $False
+    }
+    else
+    {
+        Write-Output -InputObject $true
+    }
 }
 
 ###############################################################################################
@@ -731,18 +785,4 @@ function get-yumldependencydiagram
             "[" + $JobName + "] -> [" + $jref + "]"
         }
     }) -join ','
-}
-function test-getvariable
-{
-    param($job)
-    $ArgumentList = @(
-        foreach ($a in $job.ArgumentList)
-        {
-            $message = "$($job.Name): Get Argument List Variable $a"
-            Write-Log -Message $message -EntryType Attempting
-            Get-Variable -Name $a -ValueOnly -ErrorAction Stop
-            Write-Log -Message $message -EntryType Succeeded                                    
-        }
-    )
-    $ArgumentList
 }

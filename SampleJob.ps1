@@ -10,7 +10,7 @@
         FunctionsToLoad = @('Convert-ADUserToCustomUserObject','Convert-ProxyAddressToCustomAlias','Get-AdObjectDomain','Test-IDAvailability','Test-ProxyAddressAvailability') 
         ModulesToImport = @() #optional
         PSSnapinsToImport = @()
-        ArgumentList = $decoystring,$TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound #due to a bug in poshRSJob, first argument is thrown away, these must exist when the job metadata object is created or they will be NULL
+        ArgumentList = $decoystring,$TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound #due to a bug in poshRSJob, first argument may be lost, these must exist when the job metadata object is created or they will be NULL
         Throttle = 5 #optional
         ScriptBlock = [ScriptBlock]{ #scriptblock for the job to run
             param($TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound)#note first argument is not referenced
@@ -40,6 +40,7 @@
         ValidatePath = $true
         ValidateScript = [scriptblock]{} #Not implemented yet . . .
     }
+    JobFailureRetryLimit = $null #Will use the default if NULL otherwise set to an integer
     RemoveVariablesAtCompletion = @('ADUsers','GroupRoleMapHashByDN','OPGUIDToOLGUIDHashByOPGUID','OLMailboxesHashByEDGUID','NotesUsersHashByInternetAddress') #loop removes these variables on successful completion of the job, used for memory management when dealing with large data sets
     PostJobCommands = [ScriptBlock]{} #this code runs after the job successfully completes.  runs in the control runspace
 }
