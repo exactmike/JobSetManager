@@ -669,7 +669,19 @@ function Invoke-JobProcessingLoop
                 }
                 else #otherwise remove the jobs and we'll try again next loop
                 {
-                    Get-RSJob -Name $nfdj.name | Remove-RSJob
+                    try
+                    {
+                        $message = "$($nfdj.Name): Removing Failed RSJob(s)."
+                        Write-Log -Message $message -entryType Attempting
+                        Get-RSJob -Name $nfdj.name | Remove-RSJob -ErrorAction Stop                        
+                        Write-Log -Message $message -entryType Succeeded                        
+                    }
+                    catch
+                    {
+                        $myerror = $_.tostring()
+                        Write-Log -Message $message -entrytype Failed -ErrorLog
+                        Write-Log -Message $myerror -ErrorLog
+                    }
                 }
             }
         }
