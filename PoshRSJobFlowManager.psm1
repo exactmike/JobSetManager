@@ -312,7 +312,7 @@ function Send-JobFlowManagerPeriodicReport
     }
     if ($PeriodicReportSettings.SendEmail)
     {
-        $body = "$PeriodicReportJobStatus | ConvertTo-Html"
+        $body = $PeriodicReportJobStatus | ConvertTo-Html
         $SendMailMessageParams = @{
             Body = $body
             Subject = $PeriodicReportSettings.Subject
