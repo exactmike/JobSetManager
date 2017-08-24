@@ -154,6 +154,61 @@ function Test-JobResult
         Write-output -inputObject $true    
     }
 }
+function Get-RequiredJob
+{
+    [cmdletbinding()]
+    param
+    (
+        $Settings
+        ,
+        [psobject[]]$JobDefinitions
+    )
+    #Only the jobs that meet the settings conditions or not conditions are required
+    $RequiredJobFilter = [scriptblock] {
+        (($_.OnCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Settings -TestFor $True)) -and
+        (($_.OnNOTCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
+    }
+    $message = "Get-RequiredJob: Filter $($jobDefinitions.count) JobDefinitions for Required Jobs"
+    $RequiredJobs = @($JobDefinitions | Where-Object -FilterScript $RequiredJobFilter)
+    if ($RequiredJobs.Count -eq 0)
+    {
+        Write-Log -Message $message -EntryType Failed -ErrorLog
+        Write-Output -InputObject $null
+    }
+    else
+    {
+        Write-Log -Message $message -EntryType Succeeded
+        $message = "Get-RequiredJob: Found $($RequiredJobs.Count) RequiredJobs as follows: $($Global:RequiredJobs.Name -join ', ')"
+        Write-Log -Message $message -EntryType Notification
+        Write-Output -InputObject $RequiredJobs
+    }
+}
+function Get-JobToStart
+{
+    [cmdletbinding()]
+    param
+    (
+        [parameter(Mandatory)]
+        [hashtable]$CompletedJobs
+        ,
+        [parameter(Mandatory)]
+        [psobject[]]$AllCurrentJobs
+        ,
+        [parameter(Mandatory)]
+        [psobject[]]$RequiredJobs
+    )
+    $JobsToStart = @(
+        $RequiredJobs | Where-Object -FilterScript {
+            ($_.Name -notin $CompletedJobs.Keys) -and
+            ($_.Name -notin $AllCurrentJobs.Name) -and
+            (
+                ($_.DependsOnJobs.count -eq 0) -or
+                (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $CompletedJobs -TestFor $true)
+            )
+        }
+    )
+    Write-Output -InputObject $JobsToStart
+}
 function Invoke-JobProcessingLoop
 {
     [cmdletbinding()]
@@ -182,29 +237,21 @@ function Invoke-JobProcessingLoop
         [int]$JobFailureRetryLimit = 3
     )
     ##################################################################
-    #Define all Required Jobs
+    #Get the Required Jobs from the JobDefinitions
     ##################################################################
-    #Only the jobs that meet the settings conditions or not conditions are required
-    $RequiredJobFilter = [scriptblock] {
-        (($_.OnCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Settings -TestFor $True)) -and
-        (($_.OnNOTCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
-    }
-    $message = "Invoke-JobProcessingLoop: Filter $($jobDefinitions.count) JobDefinitions for Required Jobs"
-    $Global:RequiredJobs = @($JobDefinitions | Where-Object -FilterScript $RequiredJobFilter)
-    if ($Global:RequiredJobs.Count -eq 0)
+    try
     {
-        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
+        $message = 'Invoke-JobProcessingLoop: Get-RequiredJob'
+        Write-Log -Message $message -EntryType Attempting
+        $Global:RequiredJobs = Get-RequiredJob -Settings $Settings -JobDefinitions $jobDefinitions -ErrorAction Stop    
+        Write-Log -Message $message -EntryType Succeeded        
+    }
+    catch
+    {
+        $myerror = $_.tostring()
+        Write-Log -Message $message -EntryType Failed
+        Write-Log -Message $myerror -ErrorLog -Verbose
         Return $null
-    }
-    else
-    {
-        Write-Log -Message $message -EntryType Succeeded
-        $message = "Invoke-JobProcessingLoop: Found $($Global:RequiredJobs.Count) RequiredJobs as follows: $($Global:RequiredJobs.Name -join ', ')"
-        Write-Log -Message $message -EntryType Notification
-        if ($FilterJobsOnly -eq $true)
-        {
-            Return $null
-        }
     }
     ##################################################################
     #Prep for Jobs Loop
@@ -228,26 +275,19 @@ function Invoke-JobProcessingLoop
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
     ##################################################################
-    $stopwatch = [system.diagnostics.stopwatch]::startNew()
+    #$stopwatch = [system.diagnostics.stopwatch]::startNew()
     Do
     {
+        
+        #initialize loop variables
+        $newlyCompletedJobs = @()
+        $newlyFailedDefinedJobs = @()
         #Get existing jobs and check for those that are running and/or newly completed
         $CurrentlyExistingRSJobs = @(Get-RSJob)
         $AllCurrentJobs = $CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
         $newlyCompletedRSJobs = $AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true}
-        $newlyCompletedJobs = @()
-        $newlyFailedDefinedJobs = @()
         #Check for jobs that meet their start criteria
-        $JobsToStart = @(
-            $Global:RequiredJobs | Where-Object -FilterScript {
-                ($_.Name -notin $Global:CompletedJobs.Keys) -and
-                ($_.Name -notin $AllCurrentJobs.Name) -and
-                (
-                    ($_.DependsOnJobs.count -eq 0) -or
-                    (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $Global:CompletedJobs -TestFor $true)
-                )
-            }
-        )
+        $jobsToStart = Get-JobToStart -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs Ready To Start"
