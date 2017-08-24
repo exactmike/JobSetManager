@@ -276,7 +276,7 @@ function Send-JobFlowManagerPeriodicReport
                             Status = 'Completed'
                             StartTime = $rj.StartTime
                             EndTime = $rj.EndTime
-                            ElapsedMinutes = $(New-TimeSpan -Start $rj.StartTime -End $rj.EndTime).TotalMinutes
+                            ElapsedMinutes = [math]::round($(New-TimeSpan -Start $rj.StartTime -End $rj.EndTime).TotalMinutes,1)
                         }    
                     }
                     $false
@@ -290,7 +290,7 @@ function Send-JobFlowManagerPeriodicReport
                                     Status = 'Processing'
                                     StartTime = $rj.StartTime
                                     EndTime = $null
-                                    ElapsedMinutes = $(New-TimeSpan -Start $rj.StartTime -End (Get-Date)).TotalMinutes
+                                    ElapsedMinutes = [math]::Round($(New-TimeSpan -Start $rj.StartTime -End (Get-Date)).TotalMinutes,1)
                                 }
                             }
                             $false
