@@ -180,17 +180,18 @@ function Set-JobFlowManagerPeriodicReportSettings
         [parameter()]
         $length
     )
-    $Script:JobFlowManagerPeriodicReportingSettings = [PSCustomObject]@{
+    $Script:JobFlowManagerPeriodicReportSettings = [PSCustomObject]@{
         SendEmail = $SendEmail
         WriteLog = $WriteLog
         SMTPServer = $smtpServer
         Recipient = $Recipient
         Sender = $Sender
         Subject = $subject
+        attachlog = $attachLog
         Units = $units
         Length = $length
     }
-    Write-Output -InputObject $Script:JobFlowManagerPeriodicReportingSettings
+    Write-Output -InputObject $Script:JobFlowManagerPeriodicReportSettings
 }
 function Send-JobFlowManagerPeriodicReport
 {
