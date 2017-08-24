@@ -191,7 +191,7 @@ function Get-JobToStart
         [parameter(Mandatory)]
         [hashtable]$CompletedJobs
         ,
-        [parameter(Mandatory)]
+        [parameter()]
         [psobject[]]$AllCurrentJobs
         ,
         [parameter(Mandatory)]
