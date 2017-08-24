@@ -154,6 +154,124 @@ function Test-JobResult
         Write-output -inputObject $true    
     }
 }
+function Set-JobFlowManagerPeriodicReportSettings
+{
+    [cmdletbinding()]
+    param
+    (
+        [bool]$SendEmail = $false
+        ,
+        $Recipient
+        ,
+        $Sender
+        ,
+        $subject
+        ,
+        [bool]$attachLog
+        ,
+        $smtpServer
+        ,
+        [bool]$WriteLog = $true
+        ,
+        [parameter()]
+        [validateset('Seconds','Minutes','Hours','Days')]
+        $units = 'Minutes'
+        ,
+        [parameter()]
+        $length
+    )
+    $Script:JobFlowManagerPeriodicReportingSettings = [PSCustomObject]@{
+        SendEmail = $SendEmail
+        WriteLog = $WriteLog
+        SMTPServer = $smtpServer
+        Recipient = $Recipient
+        Sender = $Sender
+        Subject = $subject
+        Units = $units
+        Length = $length
+    }
+    Write-Output -InputObject $Script:JobFlowManagerPeriodicReportingSettings
+}
+function Send-JobFlowManagerPeriodicReport
+{
+    [CmdletBinding()]
+    param
+    (
+        $PeriodicReportSettings,
+        $RequiredJobs
+    )
+    if ($PeriodicReportSettings.SendEmail -eq $true -or $PeriodicReportSettings.WriteLog -eq $true)
+    {
+        $currentRSJobs = @{}
+        $rsjobs = @(Get-RSJob)
+        foreach ($rsj in $rsjobs)
+        {
+            $currentRSJobs.$($rsj.name) = $true
+        }
+        $PeriodicReportJobStatus = @(
+            foreach ($rj in $RequiredJobs)
+            {
+                switch ($Global:completedJobs.ContainsKey($rj.name))
+                {
+                    $true
+                    {
+                        [PSCustomObject]@{
+                            Name = $rj.name
+                            Status = 'Completed'
+                            StartTime = $rj.StartTime
+                            EndTime = $rj.EndTime
+                            ElapsedMinutes = $(New-TimeSpan -Start $rj.StartTime -End $rj.EndTime).TotalMinutes
+                        }    
+                    }
+                    $false
+                    {
+                        switch ($currentRSJobs.ContainsKey($rj.name))
+                        {
+                            $true
+                            {
+                                [PSCustomObject]@{
+                                    Name = $rj.name
+                                    Status = 'Processing'
+                                    StartTime = $rj.StartTime
+                                    EndTime = $null
+                                    ElapsedMinutes = $(New-TimeSpan -Start $rj.StartTime -End (Get-Date)).TotalMinutes
+                                }
+                            }
+                            $false
+                            {
+                                [PSCustomObject]@{
+                                    Name = $rj.name
+                                    Status = 'Pending'
+                                    StartTime = $null
+                                    EndTime = $null
+                                    ElapsedMinutes = $null
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        $PeriodicReportJobStatus = $PeriodicReportJobStatus | Sort-Object StartTime,EndTime        
+    }
+    if ($PeriodicReportSettings.SendEmail)
+    {
+        $body = "$PeriodicReportJobStatus | ConvertTo-Html"
+        $SendMailMessageParams = @{
+            Body = $body
+            Subject = $PeriodicReportSettings.Subject
+            BodyAsHTML = $true
+            To = $PeriodicReportSettings.Recipient
+            From = $PeriodicReportSettings.Sender
+            SmtpServer = $PeriodicReportSettings.SmtpServer
+        }
+        if ($PeriodicReportSettings.attachlog)
+        {
+            $SendMailMessageParams.attachments = $logpath
+        }
+        Send-MailMessage @SendMailMessageParams
+    }
+}
 function Invoke-JobProcessingLoop
 {
     [cmdletbinding()]
@@ -180,6 +298,10 @@ function Invoke-JobProcessingLoop
         [switch]$ReportJobsToStartThenReturn
         ,
         [int]$JobFailureRetryLimit = 3
+        ,
+        [switch]$PeriodicReport
+        ,
+        $PeriodicReportSettings
     )
     ##################################################################
     #Define all Required Jobs
@@ -390,6 +512,13 @@ function Invoke-JobProcessingLoop
                         continue nextJobToStart
                     }
                 }
+                switch (Test-Member -Name StartTime -MemberType NoteProperty -InputObject $job)
+                {
+                    $true
+                    {$job.StartTime = Get-Date}
+                    $false
+                    {$job | Add-Member -MemberType NoteProperty -Name StartTime -Value (Get-Date)}
+                }
             }
             $message = "Finished Processing Jobs Ready To Start"
             Write-Log -message $message -entryType Notification -verbose
@@ -430,10 +559,7 @@ function Invoke-JobProcessingLoop
                             }
                             else
                             {
-                            
-                                Write-Output -InputObject $DefinedJob
                                 $skipBatchJobs.$($DefinedJob.Name) = $true                                
-                                continue nextRSJob
                             }           
                         }
                         else #this is a failure that needs to be raised
@@ -442,10 +568,14 @@ function Invoke-JobProcessingLoop
                             #$NewlyFailedJobs += $($BatchRSJobs | Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'SplitJobCountMismatch')                        
                         }   
                     }
-                    else
+                    switch (Test-Member -InputObject $DefinedJob -Name EndTime -MemberType NoteProperty)
                     {
-                        Write-Output -InputObject $DefinedJob    
+                        $true
+                        {$DefinedJob.EndTime = Get-Date}
+                        $false
+                        {$DefinedJob | Add-Member -MemberType NoteProperty -Name EndTime -Value (Get-Date)}
                     }
+                    Write-Output -InputObject $DefinedJob
                 }
             )
         }
@@ -697,10 +827,32 @@ function Invoke-JobProcessingLoop
             Write-Verbose -Message "Completed Jobs: $(($Global:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
         }
-        if ($PeriodicReporting -eq $true)
+        if ($PeriodicReport -eq $true)
         {
             #add code here to periodically report on progress via a job?
             #$Script:WaitingOnJobs = $Global:RequiredJobs.name | Where-Object -FilterScript {$_ -notin $Global:CompletedJobs.Keys}
+            if ($PeriodicReportSettings -ne $null)
+            {
+                $currentUnits = $stopwatch.Elapsed.$('Total' + $PeriodicReportSettings.units)
+                if ((Test-Path variable:LastUnits) -eq $false)
+                {$LastUnits = 0}
+                switch ($currentUnits % $PeriodicReportSettings.Length -eq 0)
+                {
+                    $true
+                    {
+                        if ($LastUnits -eq 0 -or $LastUnits -ne $currentUnits)
+                        {
+                            Send-JobFlowManagerPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs
+                            $LastUnits = $currentUnits
+                        }
+                    }
+                    $false
+                    {
+                        #do nothing
+                    }
+                }
+
+            }
         }
         if ($LoopOnce -eq $true)
         {
