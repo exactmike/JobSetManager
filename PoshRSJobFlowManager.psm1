@@ -408,7 +408,7 @@ function Invoke-JobProcessingLoop
         $newlyFailedDefinedJobs = @()
         #Get existing jobs and check for those that are running and/or newly completed
         $CurrentlyExistingRSJobs = @(Get-RSJob)
-        $AllCurrentJobs = $CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
+        $AllCurrentJobs = @($CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys})
         $newlyCompletedRSJobs = $AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true}
         #Check for jobs that meet their start criteria
         $jobsToStart = Get-JobToStart -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs
