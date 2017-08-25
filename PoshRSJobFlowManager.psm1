@@ -154,6 +154,53 @@ function Test-JobResult
         Write-output -inputObject $true    
     }
 }
+function Test-StopWatchPeriod
+{
+    [cmdletbinding()]
+    param
+    (
+        [Parameter(Mandatory)]
+        [validateset('Milliseconds','Seconds','Minutes','Hours','Days')]
+        [string]$Units
+        ,
+        [parameter(Mandatory)]
+        [system.diagnostics.stopwatch]$stopwatch
+        ,
+        [parameter(Mandatory)]
+        [int]$length
+    )
+    $currentUnits = [math]::Round($stopwatch.Elapsed.$('Total' + $Units))
+    Write-Verbose -Message "CurrentUnits current value is $currentUnits"
+    switch (Test-Path 'variable:script:LastUnits')
+    {
+        $true
+        {
+            Write-Verbose "LastUnits current value is $script:LastUnits"    
+        }
+        $false
+        {
+            Write-Verbose "Creating Last Units Variable and Setting to 0"
+            Set-Variable -Name LastUnits -Value 0 -Scope Script
+        }
+    }
+    switch (($modulus = $currentUnits % $Length) -eq 0 -or $script:LastUnits -eq 0)
+    {
+        $true
+        {
+            Write-Verbose "Modulus is $modulus"
+            if ($script:LastUnits -eq 0 -or $script:LastUnits -ne $currentUnits)
+            {
+                Write-Output -InputObject $true
+                $script:LastUnits = $currentUnits
+            }
+        }
+        $false
+        {
+            Write-Verbose "Modulus is $modulus"           
+            Write-Output -InputObject $false
+        }
+    }
+}
 function Get-RequiredJob
 {
     [cmdletbinding()]
@@ -229,7 +276,7 @@ function Set-JobFlowManagerPeriodicReportSettings
         [bool]$WriteLog = $true
         ,
         [parameter()]
-        [validateset('Seconds','Minutes','Hours','Days')]
+        [validateset('Milliseconds','Seconds','Minutes','Hours','Days')]
         $units = 'Minutes'
         ,
         [parameter()]
@@ -260,38 +307,8 @@ function Send-JobFlowManagerPeriodicReport
     if ($PeriodicReportSettings -ne $null)
     {
         Write-Verbose -Message 'Periodic Report Settings is Not NULL'
-        $currentUnits = [math]::Round($stopwatch.Elapsed.$('Total' + $PeriodicReportSettings.units))
-        Write-Verbose -Message "CurrentUnits current value is $currentUnits"
-        switch (Test-Path 'variable:script:LastUnits')
-        {
-            $true
-            {
-                Write-Verbose "LastUnits current value is $script:LastUnits"    
-            }
-            $false
-            {
-                Write-Verbose "Creating Last Units Variable and Setting to 0"
-                Set-Variable -Name LastUnits -Value 0 -Scope Script
-            }
-        }
-        switch (($modulus = $currentUnits % $PeriodicReportSettings.Length) -eq 0)
-        {
-            $true
-            {
-                Write-Verbose "Modulus is $modulus"
-                if ($script:LastUnits -eq 0 -or $script:LastUnits -ne $currentUnits)
-                {
-                    $SendTheReport = $true
-                    $script:LastUnits = $currentUnits
-                }
-            }
-            $false
-            {
-                Write-Verbose "Modulus is $modulus"           
-                $SendTheReport = $false
-            }
-        }
-
+        [bool]$SendTheReport = Test-StopWatchPeriod -Units $PeriodicReportSettings.Units -length $PeriodicReportSettings.Length -stopwatch $global:stopwatch -Verbose
+        Write-Verbose -Message "SendtheReport is set to $SendTheReport"
     }
     if ($SendTheReport)
     {
