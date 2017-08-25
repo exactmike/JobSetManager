@@ -438,7 +438,7 @@ function Invoke-JobProcessingLoop
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
     ##################################################################
-    #$stopwatch = [system.diagnostics.stopwatch]::startNew()
+    $Global:stopwatch = [system.diagnostics.stopwatch]::startNew()
     Do
     {
         
@@ -911,7 +911,7 @@ function Invoke-JobProcessingLoop
         if ($PeriodicReport -eq $true)
         {
             #add code here to periodically report on progress via a job?
-            Send-JobFlowManagerPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs
+            Send-JobFlowManagerPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch
         }
         if ($LoopOnce -eq $true)
         {
