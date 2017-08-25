@@ -254,80 +254,119 @@ function Send-JobFlowManagerPeriodicReport
     param
     (
         $PeriodicReportSettings,
-        $RequiredJobs
+        $RequiredJobs,
+        $stopwatch
     )
-    if ($PeriodicReportSettings.SendEmail -eq $true -or $PeriodicReportSettings.WriteLog -eq $true)
+    if ($PeriodicReportSettings -ne $null)
     {
-        $currentRSJobs = @{}
-        $rsjobs = @(Get-RSJob)
-        foreach ($rsj in $rsjobs)
+        Write-Verbose -Message 'Periodic Report Settings is Not NULL'
+        $currentUnits = $stopwatch.Elapsed.$('Total' + $PeriodicReportSettings.units)
+        Write-Verbose -Message "CurrentUnits current value is $currentUnits"
+        switch (Test-Path 'variable:script:LastUnits')
         {
-            $currentRSJobs.$($rsj.name) = $true
-        }
-        $PeriodicReportJobStatus = @(
-            foreach ($rj in $RequiredJobs)
+            $true
             {
-                switch ($Global:completedJobs.ContainsKey($rj.name))
+                Write-Verbose "LastUnits current value is $script:LastUnits"    
+            }
+            $false
+            {
+                Write-Verbose "Creating Last Units Variable and Setting to 0"
+                Set-Variable -Name LastUnits -Value 0 -Scope Script
+            }
+        }
+        switch (($modulus = $currentUnits % $PeriodicReportSettings.Length) -eq 0)
+        {
+            $true
+            {
+                Write-Verbose "Modulus is $modulus"
+                if ($script:LastUnits -eq 0 -or $script:LastUnits -ne $currentUnits)
                 {
-                    $true
+                    $SendTheReport = $true
+                    $script:LastUnits = $currentUnits
+                }
+            }
+            $false
+            {
+                Write-Verbose "Modulus is $modulus"           
+                $SendTheReport = $false
+            }
+        }
+
+    }
+    if ($SendTheReport)
+    {
+        if ($PeriodicReportSettings.SendEmail -eq $true -or $PeriodicReportSettings.WriteLog -eq $true)
+        {
+            $currentRSJobs = @{}
+            $rsjobs = @(Get-RSJob)
+            foreach ($rsj in $rsjobs)
+            {
+                $currentRSJobs.$($rsj.name) = $true
+            }
+            $PeriodicReportJobStatus = @(
+                foreach ($rj in $RequiredJobs)
+                {
+                    switch ($Global:completedJobs.ContainsKey($rj.name))
                     {
-                        [PSCustomObject]@{
-                            Name = $rj.name
-                            Status = 'Completed'
-                            StartTime = $rj.StartTime
-                            EndTime = $rj.EndTime
-                            ElapsedMinutes = [math]::round($(New-TimeSpan -Start $rj.StartTime -End $rj.EndTime).TotalMinutes,1)
-                        }    
-                    }
-                    $false
-                    {
-                        switch ($currentRSJobs.ContainsKey($rj.name))
+                        $true
                         {
-                            $true
+                            [PSCustomObject]@{
+                                Name = $rj.name
+                                Status = 'Completed'
+                                StartTime = $rj.StartTime
+                                EndTime = $rj.EndTime
+                                ElapsedMinutes = [math]::round($(New-TimeSpan -Start $rj.StartTime -End $rj.EndTime).TotalMinutes,1)
+                            }    
+                        }
+                        $false
+                        {
+                            switch ($currentRSJobs.ContainsKey($rj.name))
                             {
-                                [PSCustomObject]@{
-                                    Name = $rj.name
-                                    Status = 'Processing'
-                                    StartTime = $rj.StartTime
-                                    EndTime = $null
-                                    ElapsedMinutes = [math]::Round($(New-TimeSpan -Start $rj.StartTime -End (Get-Date)).TotalMinutes,1)
+                                $true
+                                {
+                                    [PSCustomObject]@{
+                                        Name = $rj.name
+                                        Status = 'Processing'
+                                        StartTime = $rj.StartTime
+                                        EndTime = $null
+                                        ElapsedMinutes = [math]::Round($(New-TimeSpan -Start $rj.StartTime -End (Get-Date)).TotalMinutes,1)
+                                    }
                                 }
-                            }
-                            $false
-                            {
-                                [PSCustomObject]@{
-                                    Name = $rj.name
-                                    Status = 'Pending'
-                                    StartTime = $null
-                                    EndTime = $null
-                                    ElapsedMinutes = $null
+                                $false
+                                {
+                                    [PSCustomObject]@{
+                                        Name = $rj.name
+                                        Status = 'Pending'
+                                        StartTime = $null
+                                        EndTime = $null
+                                        ElapsedMinutes = $null
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        )
-        $PeriodicReportJobStatus = $PeriodicReportJobStatus | Sort-Object StartTime,EndTime        
-    }
-    if ($PeriodicReportSettings.SendEmail)
-    {
-        $body = "$($PeriodicReportJobStatus | ConvertTo-Html)"
-        $SendMailMessageParams = @{
-            Body = $body
-            Subject = $PeriodicReportSettings.Subject
-            BodyAsHTML = $true
-            To = $PeriodicReportSettings.Recipient
-            From = $PeriodicReportSettings.Sender
-            SmtpServer = $PeriodicReportSettings.SmtpServer
+            )
+            $PeriodicReportJobStatus = $PeriodicReportJobStatus | Sort-Object StartTime,EndTime        
         }
-        if ($PeriodicReportSettings.attachlog)
+        if ($PeriodicReportSettings.SendEmail)
         {
-            $SendMailMessageParams.attachments = $logpath
-        }
-        Send-MailMessage @SendMailMessageParams
+            $body = "$($PeriodicReportJobStatus | ConvertTo-Html)"
+            $SendMailMessageParams = @{
+                Body = $body
+                Subject = $PeriodicReportSettings.Subject
+                BodyAsHTML = $true
+                To = $PeriodicReportSettings.Recipient
+                From = $PeriodicReportSettings.Sender
+                SmtpServer = $PeriodicReportSettings.SmtpServer
+            }
+            if ($PeriodicReportSettings.attachlog)
+            {
+                $SendMailMessageParams.attachments = $logpath
+            }
+            Send-MailMessage @SendMailMessageParams
+        }    
     }
-
 }
 function Invoke-JobProcessingLoop
 {
@@ -872,29 +911,7 @@ function Invoke-JobProcessingLoop
         if ($PeriodicReport -eq $true)
         {
             #add code here to periodically report on progress via a job?
-            #$Script:WaitingOnJobs = $Global:RequiredJobs.name | Where-Object -FilterScript {$_ -notin $Global:CompletedJobs.Keys}
-            if ($PeriodicReportSettings -ne $null)
-            {
-                $currentUnits = $stopwatch.Elapsed.$('Total' + $PeriodicReportSettings.units)
-                if ((Test-Path variable:LastUnits) -eq $false)
-                {$LastUnits = 0}
-                switch ($currentUnits % $PeriodicReportSettings.Length -eq 0)
-                {
-                    $true
-                    {
-                        if ($LastUnits -eq 0 -or $LastUnits -ne $currentUnits)
-                        {
-                            Send-JobFlowManagerPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs
-                            $LastUnits = $currentUnits
-                        }
-                    }
-                    $false
-                    {
-                        #do nothing
-                    }
-                }
-
-            }
+            Send-JobFlowManagerPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs
         }
         if ($LoopOnce -eq $true)
         {
