@@ -438,7 +438,8 @@ function Invoke-JobProcessingLoop
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
     ##################################################################
-    $Global:stopwatch = [system.diagnostics.stopwatch]::startNew()
+    if ((Test-Path variable:Global:Stopwatch) -eq $false)
+    {$Global:stopwatch = [system.diagnostics.stopwatch]::startNew()}
     Do
     {
         
