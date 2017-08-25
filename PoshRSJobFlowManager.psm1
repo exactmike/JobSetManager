@@ -411,7 +411,7 @@ function Invoke-JobProcessingLoop
         $AllCurrentJobs = @($CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys})
         $newlyCompletedRSJobs = @($AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true})
         #Check for jobs that meet their start criteria
-        $jobsToStart = Get-JobToStart -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs
+        $jobsToStart = @(Get-JobToStart -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs)
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs Ready To Start"
