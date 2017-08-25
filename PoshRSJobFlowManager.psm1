@@ -260,7 +260,7 @@ function Send-JobFlowManagerPeriodicReport
     if ($PeriodicReportSettings -ne $null)
     {
         Write-Verbose -Message 'Periodic Report Settings is Not NULL'
-        $currentUnits = $stopwatch.Elapsed.$('Total' + $PeriodicReportSettings.units)
+        $currentUnits = [math]::Round($stopwatch.Elapsed.$('Total' + $PeriodicReportSettings.units))
         Write-Verbose -Message "CurrentUnits current value is $currentUnits"
         switch (Test-Path 'variable:script:LastUnits')
         {
