@@ -168,8 +168,17 @@ function Test-StopWatchPeriod
         ,
         [parameter(Mandatory)]
         [int]$length
+        ,
+        [parameter()]
+        [switch]$FirstTestTrue
+        ,
+        [parameter()]
+        [switch]$MissedIntervalTrue  
+        ,
+        [parameter()]
+        [switch]$Reset
     )
-    $currentUnits = [math]::Round($stopwatch.Elapsed.$('Total' + $Units))
+    $currentUnits = [math]::Truncate($stopwatch.Elapsed.$('Total' + $Units))
     Write-Verbose -Message "CurrentUnits current value is $currentUnits"
     switch (Test-Path 'variable:script:LastUnits')
     {
@@ -183,20 +192,55 @@ function Test-StopWatchPeriod
             Set-Variable -Name LastUnits -Value 0 -Scope Script
         }
     }
-    switch (($modulus = $currentUnits % $Length) -eq 0 -or $script:LastUnits -eq 0)
+    switch (Test-Path 'variable:script:FirstStopWatchPeriodTest')
     {
         $true
         {
-            Write-Verbose "Modulus is $modulus"
-            if ($script:LastUnits -eq 0 -or $script:LastUnits -ne $currentUnits)
+            if ($Reset)
             {
-                Write-Output -InputObject $true
-                $script:LastUnits = $currentUnits
+                Set-Variable -Name FirstStopWatchPeriodTest -Value $true -Scope Script
+                Write-Verbose "Setting FirstStopWatchPeriodTest to True"
+            }
+            else
+            {
+                Write-Verbose "FirstStopWatchPeriodTest  =  $script:FirstStopWatchPeriodTest"
             }
         }
         $false
         {
-            Write-Verbose "Modulus is $modulus"           
+            Write-Verbose "Setting FirstStopWatchPeriodTest to True"
+            Set-Variable -Name FirstStopWatchPeriodTest -Value $true -Scope Script            
+        }
+    }    
+    $modulus = $currentUnits % $Length
+    Write-Verbose "Modulus is $modulus"      
+    switch ($modulus)
+    {
+        {$modulus -eq 0 -and $script:LastUnits -ne $currentUnits}
+        {
+            Write-Verbose -Message "'Normal' True returned due to Modulus = $modulus and first time for currentUnits = $currentUnits"
+            Write-Output -InputObject $true
+            $script:LastUnits = $currentUnits
+            break
+        }
+        {$script:FirstStopWatchPeriodTest -and $FirstTestTrue}
+        {
+            Write-Verbose -Message "'FirstTime' True returned"
+            Write-Output -InputObject $true
+            $script:LastUnits = $currentUnits
+            Write-Verbose -Message "'FirstStopWatchPeriodTest' set to False"
+            $script:FirstStopWatchPeriodTest = $false
+            break    
+        }
+        {($LastUnits + $length) -lt $currentUnits -and $MissedIntervalTrue}
+        {
+            Write-Verbose -Message "'MissedInterval' True returned due to (LastUnits + Length) >  CurrentUnits"            
+            Write-Output -InputObject $true
+            $script:LastUnits = $currentUnits            
+            break
+        }
+        default
+        {
             Write-Output -InputObject $false
         }
     }
@@ -281,6 +325,10 @@ function Set-JobFlowManagerPeriodicReportSettings
         ,
         [parameter()]
         $length
+        ,
+        [bool]$MissedIntervalTrue = $true
+        ,
+        [bool]$FirstTestTrue = $true
     )
     $Script:JobFlowManagerPeriodicReportSettings = [PSCustomObject]@{
         SendEmail = $SendEmail
@@ -292,6 +340,8 @@ function Set-JobFlowManagerPeriodicReportSettings
         attachlog = $attachLog
         Units = $units
         Length = $length
+        MissedIntervalTrue = $MissedIntervalTrue
+        FirstTestTrue = $FirstTestTrue
     }
     Write-Output -InputObject $Script:JobFlowManagerPeriodicReportSettings
 }
@@ -307,7 +357,14 @@ function Send-JobFlowManagerPeriodicReport
     if ($PeriodicReportSettings -ne $null)
     {
         Write-Verbose -Message 'Periodic Report Settings is Not NULL'
-        [bool]$SendTheReport = Test-StopWatchPeriod -Units $PeriodicReportSettings.Units -length $PeriodicReportSettings.Length -stopwatch $global:stopwatch -Verbose
+        $TestStopWatchPeriodParams = @{
+            Units = $PeriodicReportSettings.Units
+            Length = $PeriodicReportSettings.Length
+            Stopwatch = $stopwatch
+            MissedIntervalTrue = $PeriodicReportSettings.MissedIntervalTrue
+            FirstTestTrue = $PeriodicReportSettings.FirstTestTrue
+        }
+        [bool]$SendTheReport = Test-StopWatchPeriod @TestStopWatchPeriodParams
         Write-Verbose -Message "SendtheReport is set to $SendTheReport"
     }
     if ($SendTheReport)
