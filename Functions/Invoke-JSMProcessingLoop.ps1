@@ -1,448 +1,4 @@
-function Test-JobCondition
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory)]
-        [string[]]$JobConditionList
-        ,
-        [Parameter(Mandatory)]
-        $ConditionValuesObject
-        ,
-        [Parameter(Mandatory)]
-        [ValidateSet($true,$false)]
-        [bool]$TestFor
-    )
-    switch ($TestFor)
-    {
-        $true
-        {
-            if (@(switch ($JobConditionList) {{$ConditionValuesObject.$_ -eq $true}{$true}{$ConditionValuesObject.$_ -eq $false}{$false} default {$false}}) -notcontains $false)
-            {
-                $true
-            }
-            else
-            {
-                $false    
-            }
-        }
-        $false
-        {
-            if (@(switch ($JobConditionList) {{$ConditionValuesObject.$_ -eq $true}{$true}{$ConditionValuesObject.$_ -eq $false}{$false} default {$true}}) -notcontains $true)
-            {
-                $true
-            }
-            else
-            {
-                $false    
-            }
-        }
-    }
-}
-function Test-JobResult
-{
-    [cmdletbinding()]
-    param
-    (
-        [parameter(Mandatory)]
-        [hashtable]$ResultsValidation
-        ,
-        [parameter(Mandatory)]
-        $JobResults
-        ,
-        [parameter()]
-        [string]$JobName
-    )
-    if
-    (
-        @(
-            switch ($ResultsValidation.Keys)
-            {
-                'ValidateType'
-                {
-                    $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting
-                    $Result = $JobResults -is $ResultsValidation.$_
-                    if ($Result -eq $true)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Succeeded
-                    }
-                    if ($Result -eq $false)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Failed
-                    }
-                    Write-Output -InputObject $Result
-                }
-                'ValidateElementCountExpression'
-                {
-                    $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting
-                    $Result = Invoke-Expression "$($JobResults.count) $($ResultsValidation.$_)"
-                    if ($Result -eq $true)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_)). Result Count: $($JobResults.count)"
-                        Write-Log -Message $message -EntryType Succeeded
-                    }
-                    if ($Result -eq $false)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_)). Result Count: $($JobResults.count)"
-                        Write-Log -Message $message -EntryType Failed
-                    }
-                    Write-Output -InputObject $Result
-                }
-                'ValidateElementMember'
-                {
-                    $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting                    
-                    $Result = $(
-                        $MemberNames = @($JobResults[0] | Get-Member -MemberType Properties | Select-Object -ExpandProperty Name)
-                        if
-                        (
-                            @(
-                                switch ($ResultsValidation.$_)
-                                {
-                                    {$_ -in $MemberNames}
-                                    {Write-Output -InputObject $true}
-                                    {$_ -notin $MemberNames}
-                                    {Write-Output -InputObject $false}
-                                }
-                            ) -contains $false
-                        )
-                        {Write-Output -InputObject $false}
-                        else
-                        {Write-Output -InputObject $true}
-                    )
-                    if ($Result -eq $true)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Succeeded
-                    }
-                    if ($Result -eq $false)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Failed
-                    }
-                    Write-Output -InputObject $Result
-                }
-                'ValidatePath'
-                {
-                    $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting                    
-                    $Result = Test-Path -path $JobResults
-                    if ($Result -eq $true)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Succeeded
-                    }
-                    if ($Result -eq $false)
-                    {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Failed
-                    }
-                    Write-Output -InputObject $Result                    
-                }
-            }
-        ) -contains $false
-    )
-    {
-        Write-Output -InputObject $false
-    }
-    else
-    {
-        Write-output -inputObject $true    
-    }
-}
-function Test-StopWatchPeriod
-{
-    [cmdletbinding()]
-    param
-    (
-        [Parameter(Mandatory)]
-        [validateset('Milliseconds','Seconds','Minutes','Hours','Days')]
-        [string]$Units
-        ,
-        [parameter(Mandatory)]
-        [system.diagnostics.stopwatch]$stopwatch
-        ,
-        [parameter(Mandatory)]
-        [int]$length
-        ,
-        [parameter()]
-        [switch]$FirstTestTrue
-        ,
-        [parameter()]
-        [switch]$MissedIntervalTrue  
-        ,
-        [parameter()]
-        [switch]$Reset
-    )
-    $currentUnits = [math]::Truncate($stopwatch.Elapsed.$('Total' + $Units))
-    Write-Verbose -Message "CurrentUnits current value is $currentUnits"
-    switch (Test-Path 'variable:script:LastUnits')
-    {
-        $true
-        {
-            Write-Verbose "LastUnits current value is $script:LastUnits"    
-        }
-        $false
-        {
-            Write-Verbose "Creating Last Units Variable and Setting to 0"
-            Set-Variable -Name LastUnits -Value 0 -Scope Script
-        }
-    }
-    switch (Test-Path 'variable:script:FirstStopWatchPeriodTest')
-    {
-        $true
-        {
-            if ($Reset)
-            {
-                Set-Variable -Name FirstStopWatchPeriodTest -Value $true -Scope Script
-                Write-Verbose "Setting FirstStopWatchPeriodTest to True"
-            }
-            else
-            {
-                Write-Verbose "FirstStopWatchPeriodTest  =  $script:FirstStopWatchPeriodTest"
-            }
-        }
-        $false
-        {
-            Write-Verbose "Setting FirstStopWatchPeriodTest to True"
-            Set-Variable -Name FirstStopWatchPeriodTest -Value $true -Scope Script            
-        }
-    }    
-    $modulus = $currentUnits % $Length
-    Write-Verbose "Modulus is $modulus"      
-    switch ($modulus)
-    {
-        {$modulus -eq 0 -and $script:LastUnits -ne $currentUnits}
-        {
-            Write-Verbose -Message "'Normal' True returned due to Modulus = $modulus and first time for currentUnits = $currentUnits"
-            Write-Output -InputObject $true
-            $script:LastUnits = $currentUnits
-            break
-        }
-        {$script:FirstStopWatchPeriodTest -and $FirstTestTrue}
-        {
-            Write-Verbose -Message "'FirstTime' True returned"
-            Write-Output -InputObject $true
-            $script:LastUnits = $currentUnits
-            Write-Verbose -Message "'FirstStopWatchPeriodTest' set to False"
-            $script:FirstStopWatchPeriodTest = $false
-            break    
-        }
-        {($LastUnits + $length) -lt $currentUnits -and $MissedIntervalTrue}
-        {
-            Write-Verbose -Message "'MissedInterval' True returned due to (LastUnits + Length) >  CurrentUnits"            
-            Write-Output -InputObject $true
-            $script:LastUnits = $currentUnits            
-            break
-        }
-        default
-        {
-            Write-Output -InputObject $false
-        }
-    }
-}
-function Get-RequiredJob
-{
-    [cmdletbinding()]
-    param
-    (
-        $Settings
-        ,
-        [psobject[]]$JobDefinitions
-    )
-    #Only the jobs that meet the settings conditions or not conditions are required
-    $RequiredJobFilter = [scriptblock] {
-        (($_.OnCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Settings -TestFor $True)) -and
-        (($_.OnNOTCondition.count -eq 0) -or (Test-JobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
-    }
-    $message = "Get-RequiredJob: Filter $($jobDefinitions.count) JobDefinitions for Required Jobs"
-    $RequiredJobs = @($JobDefinitions | Where-Object -FilterScript $RequiredJobFilter)
-    if ($RequiredJobs.Count -eq 0)
-    {
-        Write-Log -Message $message -EntryType Failed -ErrorLog
-        Write-Output -InputObject $null
-    }
-    else
-    {
-        Write-Log -Message $message -EntryType Succeeded
-        $message = "Get-RequiredJob: Found $($RequiredJobs.Count) RequiredJobs as follows: $($Global:RequiredJobs.Name -join ', ')"
-        Write-Log -Message $message -EntryType Notification
-        Write-Output -InputObject $RequiredJobs
-    }
-}
-function Get-JobToStart
-{
-    [cmdletbinding()]
-    param
-    (
-        [parameter(Mandatory)]
-        [hashtable]$CompletedJobs
-        ,
-        [parameter()]
-        [psobject[]]$AllCurrentJobs
-        ,
-        [parameter(Mandatory)]
-        [psobject[]]$RequiredJobs
-    )
-    $JobsToStart = @(
-        $RequiredJobs | Where-Object -FilterScript {
-            ($_.Name -notin $CompletedJobs.Keys) -and
-            ($_.Name -notin $AllCurrentJobs.Name) -and
-            (
-                ($_.DependsOnJobs.count -eq 0) -or
-                (Test-JobCondition -JobConditionList $_.DependsOnJobs -ConditionValuesObject $CompletedJobs -TestFor $true)
-            )
-        }
-    )
-    Write-Output -InputObject $JobsToStart
-}
-function Set-JobFlowManagerPeriodicReportSettings
-{
-    [cmdletbinding()]
-    param
-    (
-        [bool]$SendEmail = $false
-        ,
-        $Recipient
-        ,
-        $Sender
-        ,
-        $subject
-        ,
-        [bool]$attachLog
-        ,
-        $smtpServer
-        ,
-        [bool]$WriteLog = $true
-        ,
-        [parameter()]
-        [validateset('Milliseconds','Seconds','Minutes','Hours','Days')]
-        $units = 'Minutes'
-        ,
-        [parameter()]
-        $length
-        ,
-        [bool]$MissedIntervalTrue = $true
-        ,
-        [bool]$FirstTestTrue = $true
-    )
-    $Script:JobFlowManagerPeriodicReportSettings = [PSCustomObject]@{
-        SendEmail = $SendEmail
-        WriteLog = $WriteLog
-        SMTPServer = $smtpServer
-        Recipient = $Recipient
-        Sender = $Sender
-        Subject = $subject
-        attachlog = $attachLog
-        Units = $units
-        Length = $length
-        MissedIntervalTrue = $MissedIntervalTrue
-        FirstTestTrue = $FirstTestTrue
-    }
-    Write-Output -InputObject $Script:JobFlowManagerPeriodicReportSettings
-}
-function Send-JobFlowManagerPeriodicReport
-{
-    [CmdletBinding()]
-    param
-    (
-        $PeriodicReportSettings,
-        $RequiredJobs,
-        $stopwatch
-    )
-    if ($PeriodicReportSettings -ne $null)
-    {
-        Write-Verbose -Message 'Periodic Report Settings is Not NULL'
-        $TestStopWatchPeriodParams = @{
-            Units = $PeriodicReportSettings.Units
-            Length = $PeriodicReportSettings.Length
-            Stopwatch = $stopwatch
-            MissedIntervalTrue = $PeriodicReportSettings.MissedIntervalTrue
-            FirstTestTrue = $PeriodicReportSettings.FirstTestTrue
-        }
-        [bool]$SendTheReport = Test-StopWatchPeriod @TestStopWatchPeriodParams
-        Write-Verbose -Message "SendtheReport is set to $SendTheReport"
-    }
-    if ($SendTheReport)
-    {
-        if ($PeriodicReportSettings.SendEmail -eq $true -or $PeriodicReportSettings.WriteLog -eq $true)
-        {
-            $currentRSJobs = @{}
-            $rsjobs = @(Get-RSJob)
-            foreach ($rsj in $rsjobs)
-            {
-                $currentRSJobs.$($rsj.name) = $true
-            }
-            $PeriodicReportJobStatus = @(
-                foreach ($rj in $RequiredJobs)
-                {
-                    switch ($Global:completedJobs.ContainsKey($rj.name))
-                    {
-                        $true
-                        {
-                            [PSCustomObject]@{
-                                Name = $rj.name
-                                Status = 'Completed'
-                                StartTime = $rj.StartTime
-                                EndTime = $rj.EndTime
-                                ElapsedMinutes = [math]::round($(New-TimeSpan -Start $rj.StartTime -End $rj.EndTime).TotalMinutes,1)
-                            }    
-                        }
-                        $false
-                        {
-                            switch ($currentRSJobs.ContainsKey($rj.name))
-                            {
-                                $true
-                                {
-                                    [PSCustomObject]@{
-                                        Name = $rj.name
-                                        Status = 'Processing'
-                                        StartTime = $rj.StartTime
-                                        EndTime = $null
-                                        ElapsedMinutes = [math]::Round($(New-TimeSpan -Start $rj.StartTime -End (Get-Date)).TotalMinutes,1)
-                                    }
-                                }
-                                $false
-                                {
-                                    [PSCustomObject]@{
-                                        Name = $rj.name
-                                        Status = 'Pending'
-                                        StartTime = $null
-                                        EndTime = $null
-                                        ElapsedMinutes = $null
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            )
-            $PeriodicReportJobStatus = $PeriodicReportJobStatus | Sort-Object StartTime,EndTime        
-        }
-        if ($PeriodicReportSettings.SendEmail)
-        {
-            $body = "$($PeriodicReportJobStatus | ConvertTo-Html)"
-            $SendMailMessageParams = @{
-                Body = $body
-                Subject = $PeriodicReportSettings.Subject
-                BodyAsHTML = $true
-                To = $PeriodicReportSettings.Recipient
-                From = $PeriodicReportSettings.Sender
-                SmtpServer = $PeriodicReportSettings.SmtpServer
-            }
-            if ($PeriodicReportSettings.attachlog)
-            {
-                $SendMailMessageParams.attachments = $logpath
-            }
-            Send-MailMessage @SendMailMessageParams
-        }    
-    }
-}
-function Invoke-JobProcessingLoop
+function Invoke-JFMProcessingLoop
 {
     [cmdletbinding()]
     param
@@ -480,8 +36,8 @@ function Invoke-JobProcessingLoop
     {
         $message = 'Invoke-JobProcessingLoop: Get-RequiredJob'
         Write-Log -Message $message -EntryType Attempting
-        $Global:RequiredJobs = Get-RequiredJob -Settings $Settings -JobDefinitions $jobDefinitions -ErrorAction Stop    
-        Write-Log -Message $message -EntryType Succeeded        
+        $Global:RequiredJobs = Get-RequiredJob -Settings $Settings -JobDefinitions $jobDefinitions -ErrorAction Stop
+        Write-Log -Message $message -EntryType Succeeded
     }
     catch
     {
@@ -499,7 +55,7 @@ function Invoke-JobProcessingLoop
     }
     else
     {
-        $Global:CompletedJobs = @{} #Will add JobName as Key and Value as True when a job is completed        
+        $Global:CompletedJobs = @{} #Will add JobName as Key and Value as True when a job is completed
     }
     if ($RetainFailedJobs -eq $true -and ((Test-Path variable:Global:FailedJobs) -eq $true))
     {
@@ -516,7 +72,7 @@ function Invoke-JobProcessingLoop
     {$Global:stopwatch = [system.diagnostics.stopwatch]::startNew()}
     Do
     {
-        
+
         #initialize loop variables
         $newlyCompletedJobs = @()
         $newlyFailedDefinedJobs = @()
@@ -525,7 +81,7 @@ function Invoke-JobProcessingLoop
         $AllCurrentJobs = @($CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys})
         $newlyCompletedRSJobs = @($AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true})
         #Check for jobs that meet their start criteria
-        $jobsToStart = @(Get-JobToStart -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs)
+        $jobsToStart = @(Get-JFMNextJob -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs)
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs Ready To Start"
@@ -534,7 +90,7 @@ function Invoke-JobProcessingLoop
             {
                 $message = "$($job.Name): Ready to Start"
                 Write-Log -message $message -entrytype Notification -verbose
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $true
+                Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
             }
             if ($ReportJobsToStartThenReturn -eq $true)
             {
@@ -566,7 +122,7 @@ function Invoke-JobProcessingLoop
                 }
                 #Prepare the Start-RSJob Parameters
                 $StartRSJobParams = $job.StartRSJobParams
-                $StartRSJobParams.Name = $job.Name                   
+                $StartRSJobParams.Name = $job.Name
                 #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartRSJobParameters property)
                 if ($job.ArgumentList.count -ge 1)
                 {
@@ -580,7 +136,7 @@ function Invoke-JobProcessingLoop
                                 $message = "$($job.Name): Get Argument List Variable $a"
                                 Write-Log -Message $message -EntryType Attempting
                                 Get-Variable -Name $a -ValueOnly -ErrorAction Stop
-                                Write-Log -Message $message -EntryType Succeeded                                    
+                                Write-Log -Message $message -EntryType Succeeded
                             }
                         )
                     }
@@ -592,11 +148,11 @@ function Invoke-JobProcessingLoop
                         continue nextJobToStart
                     }
                 }
-                #if the job definition calls for splitting the workload among several jobs     
+                #if the job definition calls for splitting the workload among several jobs
                 if ($job.JobSplit -gt 1)
                 {
                     $StartRSJobParams.Throttle = $job.JobSplit
-                    $StartRSJobParams.Batch = $job.Name                
+                    $StartRSJobParams.Batch = $job.Name
                     try
                     {
                         $message = "$($job.Name): Get the data to split from variable $($job.jobsplitDataVariableName)"
@@ -614,7 +170,7 @@ function Invoke-JobProcessingLoop
                     try
                     {
                         $message = "$($job.Name): Calculate the split ranges for the data $($job.jobsplitDataVariableName) for $($job.JobSplit) batch jobs"
-                        Write-Log -Message $message -EntryType Attempting -Verbose    
+                        Write-Log -Message $message -EntryType Attempting -Verbose
                         $splitGroups = New-SplitArrayRange -inputArray $DataToSplit -parts $job.JobSplit -ErrorAction Stop
                         Write-Log -Message $message -EntryType Succeeded -Verbose
                     }
@@ -636,35 +192,35 @@ function Invoke-JobProcessingLoop
                             Write-Log -Message $message -EntryType Attempting -Verbose
                             Start-RSJob @StartRSJobParams | Out-Null
                             Write-Log -Message $message -EntryType Succeeded -Verbose
-                            Update-ProcessStatus -Job $Job.name -Message $message -Status $true
+                            Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
                         }
                         catch
                         {
                             $myerror = $_.tostring()
                             Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                             Write-Log -Message $myerror -ErrorLog
-                            Update-ProcessStatus -Job $Job.name -Message $message -Status $false
+                            Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                             continue nextJobToStart
                         }
                     }
                 }
                 #otherwise just start one job
                 else
-                {      
+                {
                     try
                     {
-                        $message = "$($job.Name): Start Job"                 
+                        $message = "$($job.Name): Start Job"
                         Write-Log -Message $message -EntryType Attempting -Verbose
                         Start-RSJob @StartRSJobParams | Out-Null
-                        Write-Log -Message $message -EntryType Succeeded -Verbose              
-                        Update-ProcessStatus -Job $Job.name -Message $message -Status $true
+                        Write-Log -Message $message -EntryType Succeeded -Verbose
+                        Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
                     }
                     catch
                     {
                         $myerror = $_.tostring()
                         Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                         Write-Log -Message $myerror -ErrorLog
-                        Update-ProcessStatus -Job $Job.name -Message $message -Status $false
+                        Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                         continue nextJobToStart
                     }
                 }
@@ -700,7 +256,7 @@ function Invoke-JobProcessingLoop
                     else
                     {
                         #this is not a managed job so we move on to the next one
-                        continue nextRSJob    
+                        continue nextRSJob
                     }
                     #if the job is split into batched jobs, check if all batched jobs are completed
                     if ($DefinedJob.JobSplit -gt 1)
@@ -715,14 +271,14 @@ function Invoke-JobProcessingLoop
                             }
                             else
                             {
-                                $skipBatchJobs.$($DefinedJob.Name) = $true                                
-                            }           
+                                $skipBatchJobs.$($DefinedJob.Name) = $true
+                            }
                         }
                         else #this is a failure that needs to be raised
                         {
                             #how should we exit the loop and report what happened?
-                            #$NewlyFailedJobs += $($BatchRSJobs | Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'SplitJobCountMismatch')                        
-                        }   
+                            #$NewlyFailedJobs += $($BatchRSJobs | Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'SplitJobCountMismatch')
+                        }
                     }
                     switch (Test-Member -InputObject $DefinedJob -Name EndTime -MemberType NoteProperty)
                     {
@@ -772,17 +328,17 @@ function Invoke-JobProcessingLoop
                 if ($Errors.count -gt 0)
                 {
                     $ErrorStrings = $Errors | ForEach-Object -Process {$_.ToString()}
-                    Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog                    
+                    Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog
                 }
-            }#if        
-            #Receive the RS Job Results to generic JobResults variable.  
-            try 
+            }#if
+            #Receive the RS Job Results to generic JobResults variable.
+            try
             {
                 $message = "$($DefinedJob.Name): Receive Results to Generic JobResults variable pending validation"
                 Write-Log -Message $message -entrytype Attempting -Verbose
-                $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop            
+                $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop
                 Write-Log -Message $message -entrytype Succeeded -Verbose
-                Update-ProcessStatus -Job $DefinedJob.name -Message $message -Status $true
+                Update-JFMJobSetStatus -Job $DefinedJob.name -Message $message -Status $true
             }
             catch
             {
@@ -790,7 +346,7 @@ function Invoke-JobProcessingLoop
                 Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                 Write-Log -Message $myerror -ErrorLog
                 $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ReceiveRSJob'}})
-                Update-ProcessStatus -Job $DefinedJob.name -Message $message -Status $false
+                Update-JFMJobSetStatus -Job $DefinedJob.name -Message $message -Status $false
                 Continue nextDefinedJob
             }
             #Validate the JobResultsVariable
@@ -802,10 +358,10 @@ function Invoke-JobProcessingLoop
                 Write-Log -Message $message -EntryType Notification
                 if ($JobResults -eq $null)
                 {
-                    $message = "$($DefinedJob.Name): JobResults is NULL and therefore FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"   
+                    $message = "$($DefinedJob.Name): JobResults is NULL and therefore FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
                     Write-Log -Message $message -EntryType Failed
                     $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'NullResults'}})
-                    continue nextDefinedJob                    
+                    continue nextDefinedJob
                 }
                 else #since JobResults is not NULL run the validation tests
                 {
@@ -818,26 +374,26 @@ function Invoke-JobProcessingLoop
                         }
                         $false
                         {
-                            $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"   
+                            $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
                             Write-Log -Message $message -EntryType Failed
                             $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
                             continue nextDefinedJob
                         }
                     }
-                }                        
+                }
                 }
             else
             {
                 $message = "$($DefinedJob.Name): No Validation Tests defined for JobResults"
-                Write-Log -Message $message -EntryType Notification            
+                Write-Log -Message $message -EntryType Notification
             }
             Try
             {
-                $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"            
+                $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
                 Write-Log -Message $message -EntryType Attempting
                 Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
                 Write-Log -Message $message -EntryType Succeeded
-                $ThisDefinedJobSuccessfullyCompleted = $true            
+                $ThisDefinedJobSuccessfullyCompleted = $true
             }
             catch
             {
@@ -845,7 +401,7 @@ function Invoke-JobProcessingLoop
                 Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                 Write-Log -Message $myerror -ErrorLog
                 $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
-                Update-ProcessStatus -Job $Job.name -Message $message -Status $false
+                Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                 Continue nextDefinedJob
             }
             if ($DefinedJob.ResultsKeyVariableNames.count -ge 1)
@@ -858,7 +414,7 @@ function Invoke-JobProcessingLoop
                         Write-Log -Message $message -entrytype Attempting -Verbose
                         Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
                         Write-Log -Message $message -entrytype Succeeded -Verbose
-                        $ThisDefinedJobSuccessfullyCompleted = $true                             
+                        $ThisDefinedJobSuccessfullyCompleted = $true
                     }
                     catch
                     {
@@ -866,7 +422,7 @@ function Invoke-JobProcessingLoop
                         Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
                         Write-Log -Message $myerror -ErrorLog
                         $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
-                        Update-ProcessStatus -Job $Job.name -Message $message -Status $false                                                         
+                        Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                         $ThisDefinedJobSuccessfullyCompleted = $false
                         Continue nextDefinedJob
                     }
@@ -876,7 +432,7 @@ function Invoke-JobProcessingLoop
             {
                 $message = "$($DefinedJob.Name): Successfully Completed"
                 Write-Log -Message $message -EntryType Notification
-                Update-ProcessStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true       
+                Update-JFMJobSetStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true
                 $Global:CompletedJobs.$($DefinedJob.name) = $true
                 #Run PostJobCommands
                 if ([string]::IsNullOrWhiteSpace($DefinedJob.PostJobCommands) -eq $false)
@@ -908,13 +464,13 @@ function Invoke-JobProcessingLoop
                         Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop -Scope Global
                         Write-Log -Message $message -EntryType Succeeded
                     }
-                    Remove-Variable -Name JobResults -ErrorAction Stop             
+                    Remove-Variable -Name JobResults -ErrorAction Stop
                 }
                 catch
                 {
                     $myerror = $_.tostring()
                     Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                    Write-Log -Message $myerror -ErrorLog                 
+                    Write-Log -Message $myerror -ErrorLog
                 }
                 [gc]::Collect()
                 Start-Sleep -Seconds 5
@@ -959,8 +515,8 @@ function Invoke-JobProcessingLoop
                     {
                         $message = "$($nfdj.Name): Removing Failed RSJob(s)."
                         Write-Log -Message $message -entryType Attempting
-                        Get-RSJob -Name $nfdj.name | Remove-RSJob -ErrorAction Stop                        
-                        Write-Log -Message $message -entryType Succeeded                        
+                        Get-RSJob -Name $nfdj.name | Remove-RSJob -ErrorAction Stop
+                        Write-Log -Message $message -entryType Succeeded
                     }
                     catch
                     {
@@ -974,7 +530,7 @@ function Invoke-JobProcessingLoop
         if ($Interactive)
         {
             $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
-            $CurrentlyRunningJobs = $script:AllCurrentJobs | Select-Object -ExpandProperty Name            
+            $CurrentlyRunningJobs = $script:AllCurrentJobs | Select-Object -ExpandProperty Name
             Write-Verbose -Message "==========================================================================" -Verbose
             Write-Verbose -Message "$(Get-Date)" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
@@ -986,7 +542,7 @@ function Invoke-JobProcessingLoop
         if ($PeriodicReport -eq $true)
         {
             #add code here to periodically report on progress via a job?
-            Send-JobFlowManagerPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch
+            Send-JFMPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch
         }
         if ($LoopOnce -eq $true)
         {
@@ -994,7 +550,7 @@ function Invoke-JobProcessingLoop
         }
         else
         {
-            Start-Sleep -Seconds $SleepSecondsBetweenRSJobCheck            
+            Start-Sleep -Seconds $SleepSecondsBetweenRSJobCheck
         }
     }
     Until
@@ -1007,82 +563,4 @@ function Invoke-JobProcessingLoop
     {
         Write-Output -InputObject $true
     }
-}
-
-###############################################################################################
-#Module Variables and Variable Functions
-###############################################################################################
-function Get-JobFlowManagerVariable
-{
-param
-(
-[string]$Name
-)
-    Get-Variable -Scope Script -Name $name 
-}
-function Get-JobFlowManagerVariableValue
-{
-param
-(
-[string]$Name
-)
-    Get-Variable -Scope Script -Name $name -ValueOnly
-}
-function Set-JobFlowManagerVariable
-{
-param
-(
-[string]$Name
-,
-$Value
-)
-    Set-Variable -Scope Script -Name $Name -Value $value  
-}
-function New-JobFlowManagerVariable
-{
-param 
-(
-[string]$Name
-,
-$Value
-)
-    New-Variable -Scope Script -Name $name -Value $Value
-}
-function Remove-JobFlowManagerVariable
-{
-param
-(
-[string]$Name
-)
-    Remove-Variable -Scope Script -Name $name
-}
-################################
-#to develop
-###############################
-function Import-JobDefinitions
-{
-    $PossibleJobsFilePath = Join-Path (Get-ADExtractVariableValue PSScriptRoot) 'RSJobDefinitions.ps1'
-    $PossibleJobs = &$PossibleJobsFilePath
-}
-function Update-ProcessStatus
-{
-    param($Job,$Message,$Status)
-    if ((Test-Path 'variable:Global:ProcessStatus') -eq $false)
-    {
-      $Global:ProcessStatus = @()
-    }
-    $Global:ProcessStatus += [pscustomobject]@{TimeStamp = Get-TimeStamp; Job = $Job; Message = $Message;Status = $Status}
-}
-function get-yumldependencydiagram
-{
-    $(
-    foreach ($job in $Jobs)
-    {
-        $JobName = $job | Select-Object -ExpandProperty Name
-        $jobReferences = $job | Select-Object -ExpandProperty DependsOnJobs
-        foreach ($jref in $jobReferences)    
-        {
-            "[" + $JobName + "] -> [" + $jref + "]"
-        }
-    }) -join ','
 }

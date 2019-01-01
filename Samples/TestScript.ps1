@@ -1,7 +1,6 @@
 Import-Module oneshell
-#Initialize-AdminEnvironment -NoConnections
-#Import-Module PoshRSJob
-Import-Module PoshRSJobFlowManager -Force
+Import-Module PoshRSJob
+Import-Module PoshRSJFM -Force
 $global:testsynchashtable1 = [hashtable]::Synchronized(@{})
 $global:testsynchashtable2 = [hashtable]::Synchronized(@{})
 $global:decoystring = 'decoystring'
@@ -9,9 +8,9 @@ $settings = @{}
 $Jobs = @(
     [pscustomobject]@{
         Name = 'TestAccessToSynchronizedHashtable' #also gets added to StartRSJobParams as Name at runtime
-        PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . . 
+        PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . .
         JobSplit = 1 #how many jobs you want to run for your data, if 1, this is ignored
-        JobSplitDataVariableName = $null #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored  
+        JobSplitDataVariableName = $null #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored
         ArgumentList=@('decoystring','testsynchashtable1','testsynchashtable2') #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
         StartRSJobParams = @{
             ErrorAction = 'Stop'  #optional, recommended to stop
@@ -28,7 +27,7 @@ $Jobs = @(
         DependsOnJobs = @() #this is used to determine when the job can be run
         OnCondition = @() #this determines if the job should be run, any values here need to be true in Conditions
         OnNotCondition = @() #this determines if the job should be run, any values here need to be false in Conditions
-        ResultsVariableName = 'null' #name of the output variable to which the output will be received 
+        ResultsVariableName = 'null' #name of the output variable to which the output will be received
         ResultsKeyVariableNames = @() #if output is a hashtable and you want to have variables for different keys, use this
         ResultsValidation = [hashtable]@{
         }
@@ -37,7 +36,7 @@ $Jobs = @(
     }
 )
 #test-getVariable -job $jobs[0]
-Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive 
+Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive
 $decoystring
 $testsynchashtable1
 $testsynchashtable2
