@@ -35,15 +35,15 @@ function Invoke-JFMProcessingLoop
     try
     {
         $message = 'Invoke-JobProcessingLoop: Get-RequiredJob'
-        Write-Log -Message $message -EntryType Attempting
+        Write-Verbose -Message $message
         $Global:RequiredJobs = Get-RequiredJob -Settings $Settings -JobDefinitions $jobDefinitions -ErrorAction Stop
-        Write-Log -Message $message -EntryType Succeeded
+        Write-Verbose -Message $message
     }
     catch
     {
         $myerror = $_.tostring()
-        Write-Log -Message $message -EntryType Failed
-        Write-Log -Message $myerror -ErrorLog -Verbose
+        Write-Warning -Message $message
+        Write-Warning -Message $myerror
         Return $null
     }
     ##################################################################
@@ -85,11 +85,11 @@ function Invoke-JFMProcessingLoop
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs Ready To Start"
-            Write-Log -message $message -entryType Notification -verbose
+            Write-Verbose -message $message
             foreach ($job in $jobsToStart)
             {
                 $message = "$($job.Name): Ready to Start"
-                Write-Log -message $message -entrytype Notification -verbose
+                Write-Verbose -message $message
                 Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
             }
             if ($ReportJobsToStartThenReturn -eq $true)
@@ -103,19 +103,19 @@ function Invoke-JFMProcessingLoop
                 if ([string]::IsNullOrWhiteSpace($job.PreJobCommands) -eq $false)
                 {
                     $message = "$($job.Name): Found PreJobCommands."
-                    Write-Log -Message $message -EntryType Notification
+                    Write-Verbose -Message $message
                     $message = "$($job.Name): Run PreJobCommands"
                     try
                     {
-                        Write-Log -Message $message -EntryType Attempting
+                        Write-Verbose -Message $message
                         . $($job.PreJobCommands)
-                        Write-Log -Message $message -EntryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                         continue nextJobToStart
                         $newlyFailedDefinedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'PreJobCommands'}})
                     }
@@ -127,24 +127,24 @@ function Invoke-JFMProcessingLoop
                 if ($job.ArgumentList.count -ge 1)
                 {
                     $message = "$($job.Name): Found ArgumentList to populate with live variables."
-                    Write-Log -Message $message -EntryType Notification
+                    Write-Verbose -Message $message
                     try
                     {
                         $StartRSJobParams.ArgumentList = @(
                             foreach ($a in $job.ArgumentList)
                             {
                                 $message = "$($job.Name): Get Argument List Variable $a"
-                                Write-Log -Message $message -EntryType Attempting
+                                Write-Verbose -Message $message
                                 Get-Variable -Name $a -ValueOnly -ErrorAction Stop
-                                Write-Log -Message $message -EntryType Succeeded
+                                Write-Verbose -Message $message
                             }
                         )
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                         continue nextJobToStart
                     }
                 }
@@ -156,29 +156,29 @@ function Invoke-JFMProcessingLoop
                     try
                     {
                         $message = "$($job.Name): Get the data to split from variable $($job.jobsplitDataVariableName)"
-                        Write-Log -Message $message -EntryType Attempting -Verbose
+                        Write-Verbose -Message $message
                         $DataToSplit = Get-Variable -Name $job.JobSplitDataVariableName -ValueOnly -ErrorAction Stop
-                        Write-Log -Message $message -EntryType Succeeded -Verbose
+                        Write-Verbose -Message $message
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                         continue nextJobToStart
                     }
                     try
                     {
                         $message = "$($job.Name): Calculate the split ranges for the data $($job.jobsplitDataVariableName) for $($job.JobSplit) batch jobs"
-                        Write-Log -Message $message -EntryType Attempting -Verbose
+                        Write-Verbose -Message $message
                         $splitGroups = New-SplitArrayRange -inputArray $DataToSplit -parts $job.JobSplit -ErrorAction Stop
-                        Write-Log -Message $message -EntryType Succeeded -Verbose
+                        Write-Verbose -Message $message
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                         continue nextJobToStart
                     }
                     $splitjobcount = 0
@@ -189,16 +189,16 @@ function Invoke-JFMProcessingLoop
                         try
                         {
                             $message = "$($job.Name): Start Batch Job $splitjobcount of $($job.JobSplit)"
-                            Write-Log -Message $message -EntryType Attempting -Verbose
+                            Write-Verbose -Message $message
                             Start-RSJob @StartRSJobParams | Out-Null
-                            Write-Log -Message $message -EntryType Succeeded -Verbose
+                            Write-Verbose -Message $message
                             Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
                         }
                         catch
                         {
                             $myerror = $_.tostring()
-                            Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                            Write-Log -Message $myerror -ErrorLog
+                            Write-Warning -Message $message
+                            Write-Warning -Message $myerror
                             Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                             continue nextJobToStart
                         }
@@ -210,16 +210,16 @@ function Invoke-JFMProcessingLoop
                     try
                     {
                         $message = "$($job.Name): Start Job"
-                        Write-Log -Message $message -EntryType Attempting -Verbose
+                        Write-Verbose -Message $message
                         Start-RSJob @StartRSJobParams | Out-Null
-                        Write-Log -Message $message -EntryType Succeeded -Verbose
+                        Write-Verbose -Message $message
                         Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                         Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                         continue nextJobToStart
                     }
@@ -233,7 +233,7 @@ function Invoke-JFMProcessingLoop
                 }
             }
             $message = "Finished Processing Jobs Ready To Start"
-            Write-Log -message $message -entryType Notification -verbose
+            Write-Verbose -message $message
         }#if
         #Check for newly completed jobs that may need to be received and validated
         if ($newlyCompletedRSJobs.count -ge 1)
@@ -293,58 +293,57 @@ function Invoke-JFMProcessingLoop
         }
         if ($newlyCompletedJobs.Count -ge 1)
         {
-            Write-Log -Message "Found $($newlyCompletedJobs.Count) Newly Completed Defined Job(s) to Process: $($newlyCompletedJobs.Name -join ',')" -Verbose -EntryType Notification
+            Write-Verbose -Message "Found $($newlyCompletedJobs.Count) Newly Completed Defined Job(s) to Process: $($newlyCompletedJobs.Name -join ',')"
         }
         :nextDefinedJob foreach ($DefinedJob in $newlyCompletedJobs)
         {
             $ThisDefinedJobSuccessfullyCompleted = $false
-            Write-Log -Message "$($DefinedJob.name): RS Job Newly completed" -Verbose -EntryType Notification
+            Write-Verbose -Message "$($DefinedJob.name): RS Job Newly completed"
             $message = "$($DefinedJob.name): Match newly completed RSJob to Defined Job."
             try
             {
-                Write-Log -Message $message -EntryType Attempting
+                Write-Verbose -Message $message
                 $RSJobs = @(Get-RSJob -Name $DefinedJob.Name -ErrorAction Stop)
-                Write-Log -Message $message -EntryType Succeeded
-            }
+                Write-Verbose -Message $message
             catch
             {
                 $myerror = $_
-                Write-Log -Message $message -EntryType Failed -ErrorLog
-                Write-Log -Message $myerror.tostring() -ErrorLog
+                Write-Warning -Message $message
+                Write-Warning -Message $myerror.tostring()
                 continue nextDefinedJob
             }
             if ($DefinedJob.JobSplit -gt 1 -and ($RSJobs.Count -eq $DefinedJob.JobSplit) -eq $false)
             {
                 $message = "$($DefinedJob.name): RSJob Count does not match Defined Job SplitJob specification."
-                Write-Log -Message $message -ErrorLog -EntryType Failed
+                Write-Warning -Message $message
                 continue nextDefinedJob
             }
             #Log any Errors from the RS Job
             if ($RSJobs.HasErrors -contains $true)
             {
                 $message = "$($DefinedJob.Name): reported errors"
-                Write-Log -Message $message -ErrorLog
+                Write-Warning -Message $message
                 $Errors = foreach ($rsJob in $RSJobs) {if ($rsJob.Error.count -gt 0) {$rsJob.Error.getenumerator()}}
                 if ($Errors.count -gt 0)
                 {
                     $ErrorStrings = $Errors | ForEach-Object -Process {$_.ToString()}
-                    Write-Log -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|')) -ErrorLog
+                    Write-Warning -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|'))
                 }
             }#if
             #Receive the RS Job Results to generic JobResults variable.
             try
             {
                 $message = "$($DefinedJob.Name): Receive Results to Generic JobResults variable pending validation"
-                Write-Log -Message $message -entrytype Attempting -Verbose
+                Write-Verbose -Message $message
                 $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop
-                Write-Log -Message $message -entrytype Succeeded -Verbose
+                Write-Verbose -Message $message
                 Update-JFMJobSetStatus -Job $DefinedJob.name -Message $message -Status $true
             }
             catch
             {
                 $myerror = $_.tostring()
-                Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                Write-Log -Message $myerror -ErrorLog
+                Write-Warning -Message $message
+                Write-Warning -Message $myerror
                 $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ReceiveRSJob'}})
                 Update-JFMJobSetStatus -Job $DefinedJob.name -Message $message -Status $false
                 Continue nextDefinedJob
@@ -353,13 +352,13 @@ function Invoke-JFMProcessingLoop
             if ($DefinedJob.ResultsValidation.count -gt 0)
             {
                 $message = "$($DefinedJob.Name): Found Validation Tests to perform for JobResults"
-                Write-Log -Message $message -EntryType Notification
+                Write-Verbose -Message $message
                 $message = "$($DefinedJob.Name): Test JobResults for Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                Write-Log -Message $message -EntryType Notification
+                Write-Verbose -Message $message
                 if ($JobResults -eq $null)
                 {
                     $message = "$($DefinedJob.Name): JobResults is NULL and therefore FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                    Write-Log -Message $message -EntryType Failed
+                    Write-Warning -Message $message
                     $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'NullResults'}})
                     continue nextDefinedJob
                 }
@@ -370,12 +369,12 @@ function Invoke-JFMProcessingLoop
                         $true
                         {
                             $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                            Write-Log -Message $message -EntryType Succeeded
+                            Write-Verbose -Message $message
                         }
                         $false
                         {
                             $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                            Write-Log -Message $message -EntryType Failed
+                            Write-Warning -Message $message
                             $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
                             continue nextDefinedJob
                         }
@@ -385,21 +384,21 @@ function Invoke-JFMProcessingLoop
             else
             {
                 $message = "$($DefinedJob.Name): No Validation Tests defined for JobResults"
-                Write-Log -Message $message -EntryType Notification
+                Write-Verbose -Message $message
             }
             Try
             {
                 $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
-                Write-Log -Message $message -EntryType Attempting
+                Write-Verbose -Message $message
                 Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
-                Write-Log -Message $message -EntryType Succeeded
+                Write-Verbose -Message $message
                 $ThisDefinedJobSuccessfullyCompleted = $true
             }
             catch
             {
                 $myerror = $_.tostring()
-                Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                Write-Log -Message $myerror -ErrorLog
+                Write-Warning -Message $message
+                Write-Warning -Message $myerror
                 $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
                 Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                 Continue nextDefinedJob
@@ -411,16 +410,16 @@ function Invoke-JFMProcessingLoop
                     try
                     {
                         $message = "$($DefinedJob.Name): Receive Key Results to Variable $v"
-                        Write-Log -Message $message -entrytype Attempting -Verbose
+                        Write-Verbose -Message $message
                         Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
-                        Write-Log -Message $message -entrytype Succeeded -Verbose
+                        Write-Verbose -Message $message
                         $ThisDefinedJobSuccessfullyCompleted = $true
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                         $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
                         Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
                         $ThisDefinedJobSuccessfullyCompleted = $false
@@ -431,26 +430,26 @@ function Invoke-JFMProcessingLoop
             if ($ThisDefinedJobSuccessfullyCompleted -eq $true)
             {
                 $message = "$($DefinedJob.Name): Successfully Completed"
-                Write-Log -Message $message -EntryType Notification
+                Write-Verbose -Message $message
                 Update-JFMJobSetStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true
                 $Global:CompletedJobs.$($DefinedJob.name) = $true
                 #Run PostJobCommands
                 if ([string]::IsNullOrWhiteSpace($DefinedJob.PostJobCommands) -eq $false)
                 {
                     $message = "$($DefinedJob.Name): Found PostJobCommands."
-                    Write-Log -Message $message -EntryType Notification
+                    Write-Verbose -Message $message
                     $message = "$($DefinedJob.Name): Run PostJobCommands"
                     try
                     {
-                        Write-Log -Message $message -EntryType Attempting
+                        Write-Verbose -Message $message
                         . $($DefinedJob.PostJobCommands)
-                        Write-Log -Message $message -EntryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                     }
                 }
                 #Remove Jobs and Variables - expand the try catch to each operation (job removal and variable removal)
@@ -460,17 +459,17 @@ function Invoke-JFMProcessingLoop
                     if ($DefinedJob.RemoveVariablesAtCompletion.count -gt 0)
                     {
                         $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
-                        Write-Log -Message $message -EntryType Attempting
+                        Write-Verbose -Message $message
                         Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop -Scope Global
-                        Write-Log -Message $message -EntryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     Remove-Variable -Name JobResults -ErrorAction Stop
                 }
                 catch
                 {
                     $myerror = $_.tostring()
-                    Write-Log -Message $message -EntryType Failed -ErrorLog -Verbose
-                    Write-Log -Message $myerror -ErrorLog
+                    Write-Warning -Message $message
+                    Write-Warning -Message $myerror
                 }
                 [gc]::Collect()
                 Start-Sleep -Seconds 5
@@ -479,7 +478,7 @@ function Invoke-JFMProcessingLoop
         }#foreach
         if ($newlyCompletedJobs.Count -ge 1)
         {
-            Write-Log -Message "Finished Processing Newly Completed Jobs" -EntryType Notification -Verbose
+            Write-Verbose -Message "Finished Processing Newly Completed Jobs"
         }
         #do something here with NewlyFailedJobs
         if ($newlyFailedDefinedJobs.count -ge 1)
@@ -505,7 +504,7 @@ function Invoke-JFMProcessingLoop
                 if (($nfdj.JobFailureRetryLimit -ne $null -and $Global:FailedJobs.$($nfdj.name).FailureCount -gt $nfdj.JobFailureRetryLimit) -or $Global:FailedJobs.$($nfdj.name).FailureCount -gt $JobFailureRetryLimit)
                 {
                     $message = "$($nfdj.Name): Exceeded JobFailureRetry Limit. Ending Job Processing Loop. Failure Count: $($Global:FailedJobs.$($nfdj.name).FailureCount). FailureTypes: $($Global:FailedJobs.$($nfdj.name).FailureType -join ',')"
-                    Write-Log -Message $message -EntryType FAILED -ErrorLog
+                    Write-Warning -Message $message
                     $JobProcessingLoopFailure = $true
                     $StopLoop = $true
                 }
@@ -514,15 +513,15 @@ function Invoke-JFMProcessingLoop
                     try
                     {
                         $message = "$($nfdj.Name): Removing Failed RSJob(s)."
-                        Write-Log -Message $message -entryType Attempting
+                        Write-Verbose -Message $message
                         Get-RSJob -Name $nfdj.name | Remove-RSJob -ErrorAction Stop
-                        Write-Log -Message $message -entryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     catch
                     {
                         $myerror = $_.tostring()
-                        Write-Log -Message $message -entrytype Failed -ErrorLog
-                        Write-Log -Message $myerror -ErrorLog
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
                     }
                 }
             }

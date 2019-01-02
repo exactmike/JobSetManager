@@ -20,41 +20,41 @@ function Test-JFMJobResult
                 'ValidateType'
                 {
                     $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting
+                    Write-Verbose -Message $message
                     $Result = $JobResults -is $ResultsValidation.$_
                     if ($Result -eq $true)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Failed
+                        Write-Warning -Message $message
                     }
                     Write-Output -InputObject $Result
                 }
                 'ValidateElementCountExpression'
                 {
                     $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting
+                    Write-Verbose -Message $message
                     $Result = Invoke-Expression "$($JobResults.count) $($ResultsValidation.$_)"
                     if ($Result -eq $true)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_)). Result Count: $($JobResults.count)"
-                        Write-Log -Message $message -EntryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_)). Result Count: $($JobResults.count)"
-                        Write-Log -Message $message -EntryType Failed
+                        Write-Warning -Message $message
                     }
                     Write-Output -InputObject $Result
                 }
                 'ValidateElementMember'
                 {
                     $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting
+                    Write-Verbose -Message $message
                     $Result = $(
                         $MemberNames = @($JobResults[0] | Get-Member -MemberType Properties | Select-Object -ExpandProperty Name)
                         if
@@ -76,29 +76,29 @@ function Test-JFMJobResult
                     if ($Result -eq $true)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Failed
+                        Write-Warning -Message $message
                     }
                     Write-Output -InputObject $Result
                 }
                 'ValidatePath'
                 {
                     $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                    Write-Log -Message $message -EntryType Attempting
+                    Write-Verbose -Message $message
                     $Result = Test-Path -path $JobResults
                     if ($Result -eq $true)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Succeeded
+                        Write-Verbose -Message $message
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
-                        Write-Log -Message $message -EntryType Failed
+                        Write-Warning -Message $message
                     }
                     Write-Output -InputObject $Result
                 }
