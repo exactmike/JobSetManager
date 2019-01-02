@@ -9,7 +9,7 @@ function Invoke-JFMProcessingLoop
         ,
         [parameter()]
         [ValidateRange(5,60)]
-        [int16]$SleepSecondsBetweenRSJobCheck = 20
+        [int16]$SleepSecondsBetweenJobCheck = 20
         ,
         [switch]$Interactive
         ,

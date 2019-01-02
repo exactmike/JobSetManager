@@ -1,13 +1,13 @@
 [pscustomobject]@{
     Name = 'ConvertADUsersToCustomUserObjects' #also gets added to StartRSJobParams as Name at runtime
     Message = 'Convert AD Users to Custom User Objects' #not used anywhere, yet...
-    PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . . 
+    PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . .
     JobSplit = 4 #how many jobs you want to run for your data, if 1, this is ignored
-    JobSplitDataVariableName = 'ADUsers' #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored  
+    JobSplitDataVariableName = 'ADUsers' #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored
     ArgumentList='' #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
     StartRSJobParams = @{
         ErrorAction = 'Stop'  #optional, recommended to stop
-        FunctionsToLoad = @('Convert-ADUserToCustomUserObject','Convert-ProxyAddressToCustomAlias','Get-AdObjectDomain','Test-IDAvailability','Test-ProxyAddressAvailability') 
+        FunctionsToLoad = @('Convert-ADUserToCustomUserObject','Convert-ProxyAddressToCustomAlias','Get-AdObjectDomain','Test-IDAvailability','Test-ProxyAddressAvailability')
         ModulesToImport = @() #optional
         PSSnapinsToImport = @()
         ArgumentList = $decoystring,$TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound #due to a bug in poshRSJob, first argument may be lost, these must exist when the job metadata object is created or they will be NULL
@@ -25,13 +25,13 @@
                 ADDomainDNSRootToNetBiosNameHash = $using:ADDomainDNSRootToNetBiosNameHash
             }
             $CustomUserObjects = Convert-ADUserToCustomUserObject @ConvertADUsersToCustomUserObjectParams
-            Write-Output -InputObject $CustomUserObjects    
+            Write-Output -InputObject $CustomUserObjects
         }
     }
     DependsOnJobs = @('CreateGroupRoleMapHashByDN','GetADUsers','CreateOLMailboxesHashByEDGUID','CreateOPGUIDTOOLGUIDHashByOPGUID','CreateNotesUsersHashByInternetAddress','CreateADDomainDNSRootToNetBiosNameHash') #this is used to determine when the job can be run
     OnCondition = @() #this determines if the job should be run, any values here need to be true in Conditions
     OnNotCondition = @() #this determines if the job should be run, any values here need to be false in Conditions
-    ResultsVariableName = 'CustomUserObjects' #name of the output variable to which the output will be received 
+    ResultsVariableName = 'CustomUserObjects' #name of the output variable to which the output will be received
     ResultsKeyVariableNames = @() #if output is a hashtable and you want to have variables for different keys, use this
     ResultsValidation = [hashtable]@{
         ValidateType = [array]
