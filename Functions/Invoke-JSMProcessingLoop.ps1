@@ -1,4 +1,4 @@
-function Invoke-JFMProcessingLoop
+function Invoke-JSMProcessingLoop
 {
     [cmdletbinding()]
     param
@@ -554,7 +554,7 @@ function Invoke-JFMProcessingLoop
         }
     }
     Until
-    (((Compare-Object -DifferenceObject @($Global:CompletedJobs.Keys) -ReferenceObject @($Global:RequiredJobs.Name)) -eq $null) -or $StopLoop)
+    ($null -eq ((Compare-Object -DifferenceObject @($Global:CompletedJobs.Keys) -ReferenceObject @($Global:RequiredJobs.Name))) -or $StopLoop)
     if ($JobProcessingLoopFailure)
     {
         Write-Output -InputObject $False
