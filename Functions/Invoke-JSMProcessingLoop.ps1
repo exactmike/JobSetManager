@@ -365,7 +365,7 @@ function Invoke-JSMProcessingLoop
                 }
                 else #since JobResults is not NULL run the validation tests
                 {
-                    switch (Test-JobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
+                    switch (Test-JSMJobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
                     {
                         $true
                         {
