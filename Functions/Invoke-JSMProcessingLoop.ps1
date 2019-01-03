@@ -305,6 +305,7 @@ function Invoke-JFMProcessingLoop
                 Write-Verbose -Message $message
                 $RSJobs = @(Get-RSJob -Name $DefinedJob.Name -ErrorAction Stop)
                 Write-Verbose -Message $message
+            }
             catch
             {
                 $myerror = $_
