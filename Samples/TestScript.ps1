@@ -1,9 +1,8 @@
-Import-Module oneshell
 Import-Module PoshRSJob
-Import-Module PoshRSJFM -Force
+Import-Module JobSetManager -Force
 $global:testsynchashtable1 = [hashtable]::Synchronized(@{})
 $global:testsynchashtable2 = [hashtable]::Synchronized(@{})
-$global:decoystring = 'decoystring'
+$global:decoystring = 'decoystring' #this is for a bug that exists/existed in PoshRSJob
 $settings = @{}
 $Jobs = @(
     [pscustomobject]@{

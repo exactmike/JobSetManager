@@ -36,7 +36,7 @@ function Invoke-JSMProcessingLoop
     {
         $message = 'Invoke-JobProcessingLoop: Get-RequiredJob'
         Write-Verbose -Message $message
-        $Global:RequiredJobs = Get-RequiredJob -Settings $Settings -JobDefinitions $jobDefinitions -ErrorAction Stop
+        $Global:RequiredJobs = Get-JSMRequiredJob -Settings $Settings -JobDefinitions $jobDefinitions -ErrorAction Stop
         Write-Verbose -Message $message
     }
     catch
@@ -81,7 +81,7 @@ function Invoke-JSMProcessingLoop
         $AllCurrentJobs = @($CurrentlyExistingRSJobs | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys})
         $newlyCompletedRSJobs = @($AllCurrentJobs | Where-Object -FilterScript {$_.Completed -eq $true})
         #Check for jobs that meet their start criteria
-        $jobsToStart = @(Get-JFMNextJob -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs)
+        $jobsToStart = @(Get-JSMNextJob -CompletedJobs $Global:CompletedJobs -AllCurrentJobs $AllCurrentJobs -RequiredJobs $Global:RequiredJobs)
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs Ready To Start"
@@ -90,7 +90,7 @@ function Invoke-JSMProcessingLoop
             {
                 $message = "$($job.Name): Ready to Start"
                 Write-Verbose -message $message
-                Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
+                Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $true
             }
             if ($ReportJobsToStartThenReturn -eq $true)
             {
@@ -192,14 +192,14 @@ function Invoke-JSMProcessingLoop
                             Write-Verbose -Message $message
                             Start-RSJob @StartRSJobParams | Out-Null
                             Write-Verbose -Message $message
-                            Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
+                            Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $true
                         }
                         catch
                         {
                             $myerror = $_.tostring()
                             Write-Warning -Message $message
                             Write-Warning -Message $myerror
-                            Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
+                            Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
                             continue nextJobToStart
                         }
                     }
@@ -213,14 +213,14 @@ function Invoke-JSMProcessingLoop
                         Write-Verbose -Message $message
                         Start-RSJob @StartRSJobParams | Out-Null
                         Write-Verbose -Message $message
-                        Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $true
+                        Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $true
                     }
                     catch
                     {
                         $myerror = $_.tostring()
                         Write-Warning -Message $message
                         Write-Warning -Message $myerror
-                        Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
+                        Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
                         continue nextJobToStart
                     }
                 }
@@ -338,7 +338,7 @@ function Invoke-JSMProcessingLoop
                 Write-Verbose -Message $message
                 $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop
                 Write-Verbose -Message $message
-                Update-JFMJobSetStatus -Job $DefinedJob.name -Message $message -Status $true
+                Update-JSMJobSetStatus -Job $DefinedJob.name -Message $message -Status $true
             }
             catch
             {
@@ -346,7 +346,7 @@ function Invoke-JSMProcessingLoop
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
                 $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ReceiveRSJob'}})
-                Update-JFMJobSetStatus -Job $DefinedJob.name -Message $message -Status $false
+                Update-JSMJobSetStatus -Job $DefinedJob.name -Message $message -Status $false
                 Continue nextDefinedJob
             }
             #Validate the JobResultsVariable
@@ -401,7 +401,7 @@ function Invoke-JSMProcessingLoop
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
                 $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
-                Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
+                Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
                 Continue nextDefinedJob
             }
             if ($DefinedJob.ResultsKeyVariableNames.count -ge 1)
@@ -422,7 +422,7 @@ function Invoke-JSMProcessingLoop
                         Write-Warning -Message $message
                         Write-Warning -Message $myerror
                         $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
-                        Update-JFMJobSetStatus -Job $Job.name -Message $message -Status $false
+                        Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
                         $ThisDefinedJobSuccessfullyCompleted = $false
                         Continue nextDefinedJob
                     }
@@ -432,7 +432,7 @@ function Invoke-JSMProcessingLoop
             {
                 $message = "$($DefinedJob.Name): Successfully Completed"
                 Write-Verbose -Message $message
-                Update-JFMJobSetStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true
+                Update-JSMJobSetStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true
                 $Global:CompletedJobs.$($DefinedJob.name) = $true
                 #Run PostJobCommands
                 if ([string]::IsNullOrWhiteSpace($DefinedJob.PostJobCommands) -eq $false)
@@ -542,7 +542,7 @@ function Invoke-JSMProcessingLoop
         if ($PeriodicReport -eq $true)
         {
             #add code here to periodically report on progress via a job?
-            Send-JFMPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch
+            Send-JSMPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch
         }
         if ($LoopOnce -eq $true)
         {

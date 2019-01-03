@@ -1,4 +1,4 @@
-function Test-JFMJobCondition
+function Test-JSMJobCondition
 {
     [CmdletBinding()]
     param

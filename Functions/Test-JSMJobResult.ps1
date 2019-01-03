@@ -1,4 +1,4 @@
-function Test-JFMJobResult
+function Test-JSMJobResult
 {
     [cmdletbinding()]
     param

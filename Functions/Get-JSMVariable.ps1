@@ -1,4 +1,4 @@
-function Get-JFMVariable
+function Get-JSMVariable
 {
     param
     (

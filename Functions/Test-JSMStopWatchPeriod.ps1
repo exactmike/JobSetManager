@@ -1,4 +1,4 @@
-function Test-JFMStopWatchPeriod
+function Test-JSMStopWatchPeriod
 {
     [cmdletbinding()]
     param
