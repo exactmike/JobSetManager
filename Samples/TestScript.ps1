@@ -35,7 +35,7 @@ $Jobs = @(
     }
 )
 #test-getVariable -job $jobs[0]
-Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenRSJobCheck 5 -Interactive
+Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenJobCheck 5 -Interactive
 $decoystring
 $testsynchashtable1
 $testsynchashtable2

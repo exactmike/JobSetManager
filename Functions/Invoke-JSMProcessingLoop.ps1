@@ -550,7 +550,7 @@ function Invoke-JSMProcessingLoop
         }
         else
         {
-            Start-Sleep -Seconds $SleepSecondsBetweenRSJobCheck
+            Start-Sleep -Seconds $SleepSecondsBetweenJobCheck
         }
     }
     Until
