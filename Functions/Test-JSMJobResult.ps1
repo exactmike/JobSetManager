@@ -7,6 +7,9 @@ function Test-JSMJobResult
         [hashtable]$ResultsValidation
         ,
         [parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [AllowEmptyString()]
+        [AllowNull()]
         $JobResults
         ,
         [parameter()]
@@ -17,19 +20,49 @@ function Test-JSMJobResult
         @(
             switch ($ResultsValidation.Keys)
             {
+                'AllowNull'
+                {
+                    $message = "$($DefinedJob.Name): Processing Validation $_ ($($ResultsValidation.$_))"
+                    Write-Verbose -Message $message
+                    $Result = $null -eq $JobResults
+                    if ($Result -eq $true)
+                    {
+                        $message = "$($DefinedJob.Name): Passed Validation $_ ($($ResultsValidation.$_))"
+                        Write-Verbose -Message $message
+                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_)) Passed. Skipping other validations."
+                        Write-Verbose -Message $message
+                        $Result
+                        break
+                    }
+                }
+                'AllowEmptyArray'
+                {
+                    $message = "$($DefinedJob.Name): Processing Validation $_ ($($ResultsValidation.$_))"
+                    Write-Verbose -Message $message
+                    $Result = $JobResults.count -eq 0
+                    if ($Result -eq $true)
+                    {
+                        $message = "$($DefinedJob.Name): Passed Validation $_ ($($ResultsValidation.$_))"
+                        Write-Verbose -Message $message
+                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_)) Passed. Skipping other validations."
+                        Write-Verbose -Message $message
+                        $Result
+                        break
+                    }
+                }
                 'ValidateType'
                 {
-                    $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
+                    $message = "$($DefinedJob.Name): Processing Validation $_ ($($ResultsValidation.$_))"
                     Write-Verbose -Message $message
                     $Result = $JobResults -is $ResultsValidation.$_
                     if ($Result -eq $true)
                     {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
+                        $message = "$($DefinedJob.Name): Passed Validation $_ ($($ResultsValidation.$_))"
                         Write-Verbose -Message $message
                     }
                     if ($Result -eq $false)
                     {
-                        $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
+                        $message = "$($DefinedJob.Name): Failed Validation $_ ($($ResultsValidation.$_))"
                         Write-Warning -Message $message
                     }
                     Write-Output -InputObject $Result

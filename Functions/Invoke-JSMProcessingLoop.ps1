@@ -356,29 +356,19 @@ function Invoke-JSMProcessingLoop
                 Write-Verbose -Message $message
                 $message = "$($DefinedJob.Name): Test JobResults for Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
                 Write-Verbose -Message $message
-                if ($JobResults -eq $null)
+                switch (Test-JSMJobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
                 {
-                    $message = "$($DefinedJob.Name): JobResults is NULL and therefore FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                    Write-Warning -Message $message
-                    $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'NullResults'}})
-                    continue nextDefinedJob
-                }
-                else #since JobResults is not NULL run the validation tests
-                {
-                    switch (Test-JSMJobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
+                    $true
                     {
-                        $true
-                        {
-                            $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                            Write-Verbose -Message $message
-                        }
-                        $false
-                        {
-                            $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
-                            Write-Warning -Message $message
-                            $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
-                            continue nextDefinedJob
-                        }
+                        $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
+                        Write-Verbose -Message $message
+                    }
+                    $false
+                    {
+                        $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
+                        Write-Warning -Message $message
+                        $newlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
+                        continue nextDefinedJob
                     }
                 }
                 }
