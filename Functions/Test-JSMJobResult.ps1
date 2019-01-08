@@ -15,6 +15,10 @@ function Test-JSMJobResult
         [parameter()]
         [string]$JobName
     )
+    if (-not $ResultsValidation.ContainsKey('AllowNull'))
+    {
+        $ResultsValidation.'NotNull' = $true
+    }
     if
     (
         @(
@@ -48,6 +52,18 @@ function Test-JSMJobResult
                         Write-Verbose -Message $message
                         $Result
                         break
+                    }
+                }
+                'NotNull'
+                {
+                    $message = "$($DefinedJob.Name): Processing Validation $_ ($($ResultsValidation.$_))"
+                    Write-Verbose -Message $message
+                    $Result = $null -ne $JobResults
+                    if ($Result -eq $true)
+                    {
+                        $message = "$($DefinedJob.Name): Passed Validation $_ ($($ResultsValidation.$_))"
+                        Write-Verbose -Message $message
+                        $Result
                     }
                 }
                 'ValidateType'
