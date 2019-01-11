@@ -1,0 +1,1 @@
+- [ ] when restarting a job processing loop some start/end times are lost on jobs.  Need to detangle requiredjobs and definedjobs in invoke-jsmprocessingloop

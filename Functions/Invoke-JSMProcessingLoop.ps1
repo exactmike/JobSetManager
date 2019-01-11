@@ -13,8 +13,6 @@ function Invoke-JSMProcessingLoop
         ,
         [switch]$Interactive
         ,
-        [switch]$FilterJobsOnly
-        ,
         [switch]$RetainCompletedJobs
         ,
         [switch]$RetainFailedJobs
@@ -148,7 +146,7 @@ function Invoke-JSMProcessingLoop
                         continue nextJobToStart
                     }
                 }
-                #if the job definition calls for splitting the workload among several jobs
+                #if the job definition calls for splitting the workload among multiple jobs
                 if ($job.JobSplit -gt 1)
                 {
                     $StartRSJobParams.Throttle = $job.JobSplit
@@ -377,32 +375,39 @@ function Invoke-JSMProcessingLoop
                 $message = "$($DefinedJob.Name): No Validation Tests defined for JobResults"
                 Write-Verbose -Message $message
             }
-            Try
+            switch ($DefinedJob.ResultsKeyVariableNames.count -ge 1)
             {
-                $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
-                Write-Verbose -Message $message
-                Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
-                Write-Verbose -Message $message
-                $ThisDefinedJobSuccessfullyCompleted = $true
-            }
-            catch
-            {
-                $myerror = $_.tostring()
-                Write-Warning -Message $message
-                Write-Warning -Message $myerror
-                $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
-                Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
-                Continue nextDefinedJob
-            }
-            if ($DefinedJob.ResultsKeyVariableNames.count -ge 1)
-            {
-                foreach ($v in $DefinedJob.ResultsKeyVariableNames)
+                $true
                 {
-                    try
+                    foreach ($v in $DefinedJob.ResultsKeyVariableNames)
                     {
-                        $message = "$($DefinedJob.Name): Receive Key Results to Variable $v"
+                        try
+                        {
+                            $message = "$($DefinedJob.Name): Receive Key Results to Variable $v"
+                            Write-Verbose -Message $message
+                            Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
+                            Write-Verbose -Message $message
+                            $ThisDefinedJobSuccessfullyCompleted = $true
+                        }
+                        catch
+                        {
+                            $myerror = $_.tostring()
+                            Write-Warning -Message $message
+                            Write-Warning -Message $myerror
+                            $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
+                            Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
+                            $ThisDefinedJobSuccessfullyCompleted = $false
+                            Continue nextDefinedJob
+                        }
+                    }
+                }
+                $false
+                {
+                    Try
+                    {
+                        $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
                         Write-Verbose -Message $message
-                        Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
+                        Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
                         Write-Verbose -Message $message
                         $ThisDefinedJobSuccessfullyCompleted = $true
                     }
@@ -411,9 +416,8 @@ function Invoke-JSMProcessingLoop
                         $myerror = $_.tostring()
                         Write-Warning -Message $message
                         Write-Warning -Message $myerror
-                        $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
+                        $NewlyFailedDefinedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
                         Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
-                        $ThisDefinedJobSuccessfullyCompleted = $false
                         Continue nextDefinedJob
                     }
                 }
