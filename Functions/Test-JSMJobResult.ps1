@@ -81,7 +81,7 @@ function Test-JSMJobResult
                         $message = "$($DefinedJob.Name): Failed Validation $_ ($($ResultsValidation.$_))"
                         Write-Warning -Message $message
                     }
-                    Write-Output -InputObject $Result
+                    $Result
                 }
                 'ValidateElementCountExpression'
                 {
@@ -98,7 +98,7 @@ function Test-JSMJobResult
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_)). Result Count: $($JobResults.count)"
                         Write-Warning -Message $message
                     }
-                    Write-Output -InputObject $Result
+                    $Result
                 }
                 'ValidateElementMember'
                 {
@@ -112,15 +112,15 @@ function Test-JSMJobResult
                                 switch ($ResultsValidation.$_)
                                 {
                                     {$_ -in $MemberNames}
-                                    {Write-Output -InputObject $true}
+                                    {$true}
                                     {$_ -notin $MemberNames}
-                                    {Write-Output -InputObject $false}
+                                    {$false}
                                 }
                             ) -contains $false
                         )
-                        {Write-Output -InputObject $false}
+                        {$false}
                         else
-                        {Write-Output -InputObject $true}
+                        {$true}
                     )
                     if ($Result -eq $true)
                     {
@@ -132,7 +132,7 @@ function Test-JSMJobResult
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
                         Write-Warning -Message $message
                     }
-                    Write-Output -InputObject $Result
+                    $Result
                 }
                 'ValidatePath'
                 {
@@ -149,16 +149,16 @@ function Test-JSMJobResult
                         $message = "$($DefinedJob.Name): Validation $_ ($($ResultsValidation.$_))"
                         Write-Warning -Message $message
                     }
-                    Write-Output -InputObject $Result
+                    $Result
                 }
             }
         ) -contains $false
     )
     {
-        Write-Output -InputObject $false
+        $false
     }
     else
     {
-        Write-output -inputObject $true
+        $true
     }
 }

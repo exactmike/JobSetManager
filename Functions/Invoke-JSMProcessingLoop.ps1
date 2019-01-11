@@ -287,7 +287,7 @@ function Invoke-JSMProcessingLoop
                         $false
                         {$DefinedJob | Add-Member -MemberType NoteProperty -Name EndTime -Value (Get-Date)}
                     }
-                    Write-Output -InputObject $DefinedJob
+                    $DefinedJob
                 }
             )
         }
@@ -547,10 +547,10 @@ function Invoke-JSMProcessingLoop
     ($null -eq ((Compare-Object -DifferenceObject @($Global:CompletedJobs.Keys) -ReferenceObject @($Global:RequiredJobs.Name))) -or $StopLoop)
     if ($JobProcessingLoopFailure)
     {
-        Write-Output -InputObject $False
+        $False
     }
     else
     {
-        Write-Output -InputObject $true
+        $true
     }
 }

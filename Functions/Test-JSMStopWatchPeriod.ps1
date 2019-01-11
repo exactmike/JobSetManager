@@ -63,29 +63,29 @@ function Test-JSMStopWatchPeriod
         {$modulus -eq 0 -and $script:LastUnits -ne $currentUnits}
         {
             Write-Verbose -Message "'Normal' True returned due to Modulus = $modulus and first time for currentUnits = $currentUnits"
-            Write-Output -InputObject $true
+            $true
             $script:LastUnits = $currentUnits
             break
         }
         {$script:FirstStopWatchPeriodTest -and $FirstTestTrue}
         {
             Write-Verbose -Message "'FirstTime' True returned"
-            Write-Output -InputObject $true
+            $true
             $script:LastUnits = $currentUnits
             Write-Verbose -Message "'FirstStopWatchPeriodTest' set to False"
-            $script:FirstStopWatchPeriodTest = $false
+            $false
             break
         }
         {($LastUnits + $length) -lt $currentUnits -and $MissedIntervalTrue}
         {
             Write-Verbose -Message "'MissedInterval' True returned due to (LastUnits + Length) >  CurrentUnits"
-            Write-Output -InputObject $true
+            $true
             $script:LastUnits = $currentUnits
             break
         }
         default
         {
-            Write-Output -InputObject $false
+            $false
         }
     }
 }

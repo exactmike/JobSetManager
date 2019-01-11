@@ -25,7 +25,7 @@
                 ADDomainDNSRootToNetBiosNameHash = $using:ADDomainDNSRootToNetBiosNameHash
             }
             $CustomUserObjects = Convert-ADUserToCustomUserObject @ConvertADUsersToCustomUserObjectParams
-            Write-Output -InputObject $CustomUserObjects
+            $CustomUserObjects
         }
     }
     DependsOnJobs = @('CreateGroupRoleMapHashByDN','GetADUsers','CreateOLMailboxesHashByEDGUID','CreateOPGUIDTOOLGUIDHashByOPGUID','CreateNotesUsersHashByInternetAddress','CreateADDomainDNSRootToNetBiosNameHash') #this is used to determine when the job can be run
