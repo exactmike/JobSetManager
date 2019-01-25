@@ -544,6 +544,7 @@ function Invoke-JSMProcessingLoop
         }
         else
         {
+            Write-Verbose -message "Safe to interrupt loop for next $SleepSecondsBetweenJobCheck seconds"
             Start-Sleep -Seconds $SleepSecondsBetweenJobCheck
         }
     }
