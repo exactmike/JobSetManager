@@ -524,12 +524,12 @@ function Invoke-JSMProcessingLoop
         if ($Interactive)
         {
             $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
-            $Global:CurrentlyRunningJobs = @{}
-            $script:AllCurrentJobs | ForEach-Object {$Global:CurrentlyRunningJobs.$($_.Name) = $true}
+            $Global:CurrentJobs = @{}
+            $script:AllCurrentJobs | ForEach-Object {$Global:CurrentJobs.$($_.Name) = $true}
             Write-Verbose -Message "==========================================================================" -Verbose
             Write-Verbose -Message "$(Get-Date)" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
-            Write-Verbose -Message "Currently Running Jobs: $(($Global:CurrentlyRunningJobs.Keys | sort-object) -join ',')" -Verbose
+            Write-Verbose -Message "Currently Running Jobs: $(($Global:CurrentJobs.Keys | sort-object) -join ',')" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
             Write-Verbose -Message "Completed Jobs: $(($Global:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
             Write-Verbose -Message "==========================================================================" -Verbose
@@ -542,7 +542,7 @@ function Invoke-JSMProcessingLoop
         if ($PeriodicReport -eq $true)
         {
             #add code here to periodically report on progress via a job?
-            Send-JSMPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch -CompletedJobs $Global:CompletedJobs -FailedJobs $Global:FailedJobs -CurrentJobs = $Global:CurrentlyRunningJobs
+            Send-JSMPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch -CompletedJobs $Global:CompletedJobs -FailedJobs $Global:FailedJobs -CurrentJobs $Global:CurrentJobs
         }
         if ($LoopOnce -eq $true)
         {
