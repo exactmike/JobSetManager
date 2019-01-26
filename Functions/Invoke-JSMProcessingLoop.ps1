@@ -521,25 +521,25 @@ function Invoke-JSMProcessingLoop
                 }
             }
         }
-        if ($Interactive)
+        if ($true -eq $Interactive -or $true -eq $PeriodicReport)
         {
             $Script:AllCurrentJobs = Get-RSJob | Where-Object -FilterScript {$_.Name -notin $Global:CompletedJobs.Keys}
             $Global:CurrentJobs = @{}
             $script:AllCurrentJobs | ForEach-Object {$Global:CurrentJobs.$($_.Name) = $true}
-            Write-Verbose -Message "==========================================================================" -Verbose
+            Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "$(Get-Date)" -Verbose
-            Write-Verbose -Message "==========================================================================" -Verbose
-            Write-Verbose -Message "Currently Running Jobs: $(($Global:CurrentJobs.Keys | sort-object) -join ',')" -Verbose
-            Write-Verbose -Message "==========================================================================" -Verbose
-            Write-Verbose -Message "Completed Jobs: $(($Global:CompletedJobs.Keys | sort-object) -join ',' )" -Verbose
-            Write-Verbose -Message "==========================================================================" -Verbose
+            Write-Verbose -Message "=========================================================================="
+            Write-Verbose -Message "Currently Running Jobs: $(($Global:CurrentJobs.Keys | sort-object) -join ',')"
+            Write-Verbose -Message "=========================================================================="
+            Write-Verbose -Message "Completed Jobs: $(($Global:CompletedJobs.Keys | sort-object) -join ',' )"
+            Write-Verbose -Message "=========================================================================="
             if ($Global:FailedJobs.Count -ge 1)
             {
-                Write-Verbose -Message "Jobs With Failed Attempts: $(($Global:FailedJobs.Keys | sort-object) -join ',' )" -Verbose
-                Write-Verbose -Message "==========================================================================" -Verbose
+                Write-Verbose -Message "Jobs With Failed Attempts: $(($Global:FailedJobs.Keys | sort-object) -join ',' )"
+                Write-Verbose -Message "=========================================================================="
             }
         }
-        if ($PeriodicReport -eq $true)
+        if ($true -eq $PeriodicReport)
         {
             #add code here to periodically report on progress via a job?
             Send-JSMPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJobs $Global:RequiredJobs -stopwatch $Global:stopwatch -CompletedJobs $Global:CompletedJobs -FailedJobs $Global:FailedJobs -CurrentJobs $Global:CurrentJobs
