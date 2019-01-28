@@ -1,4 +1,4 @@
-function Process-JSMNewlyCompletedJob
+function Start-JSMNewlyCompletedJobProcess
 {
     [cmdletbinding()]
     param(

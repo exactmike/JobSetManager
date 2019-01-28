@@ -53,6 +53,8 @@ function Invoke-JSMProcessingLoop
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
     ##################################################################
+    $JobProcessingLoopFailure = $false
+    $StopLoop = $false
     Do
     {
         $newlyCompletedJobs = @()
@@ -64,149 +66,16 @@ function Invoke-JSMProcessingLoop
         $JobsToStart = @(Get-JSMNextJob -CompletedJobs $CompletedJobs -CurrentJobs $CurrentJobs -RequiredJobs $RequiredJobs)
         if ($JobsToStart.Count -ge 1)
         {
-            $message = "Found $($JobsToStart.Count) Jobs Ready To Start"
+            $message = "Found $($JobsToStart.Count) Jobs To Start. Submitting to Start-JSMJob."
             Write-Verbose -message $message
-            foreach ($job in $jobsToStart)
-            {
-                $message = "$($job.Name): Ready to Start"
-                Write-Verbose -message $message
-                Update-JSMProcessingLoopStatus -Job $Job.name -Message $message -Status $true
-            }
-            #Start the jobs
-            :nextJobToStart foreach ($job in $JobsToStart)
-            {
-                #Run the PreJobCommands
-                if ([string]::IsNullOrWhiteSpace($job.PreJobCommands) -eq $false)
-                {
-                    $message = "$($job.Name): Found PreJobCommands."
-                    Write-Verbose -Message $message
-                    $message = "$($job.Name): Run PreJobCommands"
-                    try
-                    {
-                        Write-Verbose -Message $message
-                        . $($job.PreJobCommands)
-                        Write-Verbose -Message $message
-                    }
-                    catch
-                    {
-                        $myerror = $_.tostring()
-                        Write-Warning -Message $message
-                        Write-Warning -Message $myerror
-                        continue nextJobToStart
-                        $newlyFailedDefinedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'PreJobCommands'}})
-                    }
-                }
-                #Prepare the Start-RSJob Parameters
-                $StartRSJobParams = $job.StartRSJobParams
-                $StartRSJobParams.Name = $job.Name
-                #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartRSJobParameters property)
-                if ($job.ArgumentList.count -ge 1)
-                {
-                    $message = "$($job.Name): Found ArgumentList to populate with live variables."
-                    Write-Verbose -Message $message
-                    try
-                    {
-                        $StartRSJobParams.ArgumentList = @(
-                            foreach ($a in $job.ArgumentList)
-                            {
-                                $message = "$($job.Name): Get Argument List Variable $a"
-                                Write-Verbose -Message $message
-                                Get-Variable -Name $a -ValueOnly -ErrorAction Stop
-                                Write-Verbose -Message $message
-                            }
-                        )
-                    }
-                    catch
-                    {
-                        $myerror = $_.tostring()
-                        Write-Warning -Message $message
-                        Write-Warning -Message $myerror
-                        continue nextJobToStart
-                    }
-                }
-                #if the job definition calls for splitting the workload among multiple jobs
-                if ($job.JobSplit -gt 1)
-                {
-                    $StartRSJobParams.Throttle = $job.JobSplit
-                    $StartRSJobParams.Batch = $job.Name
-                    try
-                    {
-                        $message = "$($job.Name): Get the data to split from variable $($job.jobsplitDataVariableName)"
-                        Write-Verbose -Message $message
-                        $DataToSplit = Get-Variable -Name $job.JobSplitDataVariableName -ValueOnly -ErrorAction Stop
-                        Write-Verbose -Message $message
-                    }
-                    catch
-                    {
-                        $myerror = $_.tostring()
-                        Write-Warning -Message $message
-                        Write-Warning -Message $myerror
-                        continue nextJobToStart
-                    }
-                    try
-                    {
-                        $message = "$($job.Name): Calculate the split ranges for the data $($job.jobsplitDataVariableName) for $($job.JobSplit) batch jobs"
-                        Write-Verbose -Message $message
-                        $splitGroups = New-SplitArrayRange -inputArray $DataToSplit -parts $job.JobSplit -ErrorAction Stop
-                        Write-Verbose -Message $message
-                    }
-                    catch
-                    {
-                        $myerror = $_.tostring()
-                        Write-Warning -Message $message
-                        Write-Warning -Message $myerror
-                        continue nextJobToStart
-                    }
-                    $splitjobcount = 0
-                    foreach ($split in $splitGroups)
-                    {
-                        $splitjobcount++
-                        $YourSplitData = $DataToSplit[$($split.start)..$($split.end)]
-                        try
-                        {
-                            $message = "$($job.Name): Start Batch Job $splitjobcount of $($job.JobSplit)"
-                            Write-Verbose -Message $message
-                            Start-RSJob @StartRSJobParams | Out-Null
-                            Write-Verbose -Message $message
-                            Update-JSMProcessingLoopStatus -Job $Job.name -Message $message -Status $true
-                        }
-                        catch
-                        {
-                            $myerror = $_.tostring()
-                            Write-Warning -Message $message
-                            Write-Warning -Message $myerror
-                            Update-JSMProcessingLoopStatus -Job $Job.name -Message $message -Status $false
-                            continue nextJobToStart
-                        }
-                    }
-                }
-                #otherwise just start one job
-                else
-                {
-                    try
-                    {
-                        $message = "$($job.Name): Start Job"
-                        Write-Verbose -Message $message
-                        Start-RSJob @StartRSJobParams | Out-Null
-                        Write-Verbose -Message $message
-                        Update-JSMProcessingLoopStatus -Job $Job.name -Message $message -Status $true
-                    }
-                    catch
-                    {
-                        $myerror = $_.tostring()
-                        Write-Warning -Message $message
-                        Write-Warning -Message $myerror
-                        Update-JSMProcessingLoopStatus -Job $Job.name -Message $message -Status $false
-                        continue nextJobToStart
-                    }
-                }
-                $job | Add-Member -MemberType NoteProperty -Name StartTime -Value (Get-Date) -Force
-            }
-            $message = "Finished Processing Jobs Ready To Start"
-            Write-Verbose -message $message
+            $FailedStartJobs = Start-JSMJob -Job $JobsToStart
         }#if
-        #Check for newly completed jobs that may need to be received and validated
-        $NewlyCompletedJobs,$NewlyFailedJobs = Process-JSMNewlyCompletedJob -CompletedJob $CompletedJobs -RequiredJob $RequiredJobs
+        #Check for newly completed jobs that may need to be received and validated and for newly failed jobs for fail processing
+        $NewlyCompletedJobs,$NewlyFailedJobs = Start-JSMNewlyCompletedJobProcess -CompletedJob $CompletedJobs -RequiredJob $RequiredJobs
+        if ($null -ne $FailedStartJobs -and $FailedStartJobs.count -ge 1)
+        {
+            $NewlyFailedJobs += $FailedStartJobs
+        }
         #move NewlyFailed handling out to discrete function soon - 20190127
         if ($NewlyFailedJobs.count -ge 1)
         {
@@ -264,7 +133,7 @@ function Invoke-JSMProcessingLoop
         }
         if ($true -eq $PeriodicReport)
         {
-            Process-JSMPeriodicReport -PeriodicReportSettings $PeriodicReportSettings -RequiredJob $RequiredJobs -stopwatch $Script:Stopwatch -CompletedJob $CompletedJobs -FailedJob $FailedJobs -CurrentJob $CurrentJobs
+            Start-JSMPeriodicReportProcess -PeriodicReportSettings $PeriodicReportSettings -RequiredJob $RequiredJobs -stopwatch $Script:Stopwatch -CompletedJob $CompletedJobs -FailedJob $FailedJobs -CurrentJob $CurrentJobs
         }
         if ($LoopOnce -eq $true)
         {

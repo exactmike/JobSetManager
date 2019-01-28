@@ -69,7 +69,7 @@ Description = 'add on module for poshrsjob to manage job hierarchies'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'Add-JSMCompletedJob','Add-JSMFailedJob','Clear-JSMCompletedJob','Clear-JSMFailedJob','Get-JSMCompletedJob','Get-JSMCurrentJob','Get-JSMFailedJob','Get-JSMJobSetYUMLURL','Get-JSMNextJob','Get-JSMRequiredJob','Get-JSMStopwatch','Get-JSMVariable','Get-JSMVariableValue','Invoke-JSMProcessingLoop','New-JSMVariable','Process-JSMNewlyCompletedJob','Process-JSMPeriodicReport','Remove-JSMCompletedJob','Remove-JSMFailedJob','Remove-JSMVariable','Set-JSMPeriodicReportSettings','Set-JSMVariable','Start-JSMStopwatch','Test-JSMJobCondition','Test-JSMJobResult','Test-JSMStopWatchPeriod','Update-JSMProcessingLoopStatus'
+FunctionsToExport = 'Add-JSMCompletedJob','Add-JSMFailedJob','Clear-JSMCompletedJob','Clear-JSMFailedJob','Get-JSMCompletedJob','Get-JSMCurrentJob','Get-JSMFailedJob','Get-JSMJobSetYUMLURL','Get-JSMNextJob','Get-JSMRequiredJob','Get-JSMStopwatch','Get-JSMVariable','Get-JSMVariableValue','Invoke-JSMProcessingLoop','New-JSMVariable','Start-JSMNewlyCompletedJobProcess','Start-JSMPeriodicReportProcess','Remove-JSMCompletedJob','Remove-JSMFailedJob','Remove-JSMVariable','Set-JSMPeriodicReportSettings','Set-JSMVariable','Start-JSMStopwatch','Start-JSMJob','Test-JSMJobCondition','Test-JSMJobResult','Test-JSMStopWatchPeriod','Update-JSMProcessingLoopStatus'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 #CmdletsToExport = '*'
