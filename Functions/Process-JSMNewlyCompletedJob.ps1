@@ -21,7 +21,7 @@ function Process-JSMNewlyCompletedJob
                     continue nextRSJob
                 }
                 #Match the RS Job to the Job Definition
-                $DefinedJob = @($Script:RequiredJob | Where-Object -FilterScript {$_.name -eq $rsJob.name})
+                $DefinedJob = @($RequiredJob | Where-Object -FilterScript {$_.name -eq $rsJob.name})
                 switch ($DefinedJob.Count)
                 {
                     1
