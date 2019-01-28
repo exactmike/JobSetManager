@@ -57,8 +57,6 @@ function Invoke-JSMProcessingLoop
     $StopLoop = $false
     Do
     {
-        $newlyCompletedJobs = @()
-        $newlyFailedDefinedJobs = @()
         #Get Completed and Current Jobs
         $CompletedJobs = Get-JSMCompletedJob
         $CurrentJobs = Get-JSMCurrentJob -RequiredJob $RequiredJobs -CompletedJob $CompletedJobs
