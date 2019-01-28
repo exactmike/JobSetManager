@@ -6,7 +6,7 @@ function Get-JSMCompletedJob
     )
     if ($true -ne (Test-Path variable:Script:CompletedJobs))
     {
-        $script:CompletedJobs = [ordered]@{}
+        $script:CompletedJobs = [hashtable]@{}
     }
     $script:CompletedJobs
 }

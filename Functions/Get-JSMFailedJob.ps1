@@ -5,7 +5,7 @@ function Get-JSMFailedJob
     )
     if ($true -ne (Test-Path variable:Script:FailedJobs))
     {
-        $script:FailedJobs = [ordered]@{}
+        $script:FailedJobs = [hashtable]@{}
     }
     $script:FailedJobs
 }
