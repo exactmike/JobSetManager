@@ -67,18 +67,17 @@ function Start-JSMNewlyCompletedJobProcess
         )
         if ($PotentialNewlyCompletedJobs.Count -ge 1)
         {
-            $NewlyCompletedJob = @{}
             $NewlyFailedJobs = @()
             Write-Verbose -Message "Found $($PotentialNewlyCompletedJobs.Count) Potential Newly Completed Job(s) to Process: $($PotentialNewlyCompletedJobs.Name -join ',')"
-            :nextDefinedJob foreach ($DefinedJob in $PotentialNewlyCompletedJobs)
+            :nextDefinedJob foreach ($j in $PotentialNewlyCompletedJobs)
             {
                 $ThisDefinedJobSuccessfullyCompleted = $false
-                Write-Verbose -Message "$($DefinedJob.name): RS Job Newly completed"
-                $message = "$($DefinedJob.name): Match newly completed RSJob to Defined Job."
+                Write-Verbose -Message "$($j.name): RS Job Newly completed"
+                $message = "$($j.name): Match newly completed RSJob to Defined Job."
                 try
                 {
                     Write-Verbose -Message $message
-                    $RSJobs = @(Get-RSJob -Name $DefinedJob.Name -ErrorAction Stop)
+                    $RSJobs = @(Get-RSJob -Name $j.Name -ErrorAction Stop)
                     Write-Verbose -Message $message
                 }
                 catch
@@ -86,81 +85,90 @@ function Start-JSMNewlyCompletedJobProcess
                     $myerror = $_
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror.tostring()
+                    $NewlyFailedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'GetJob'}})
+                    Add-JSMFailedJob -Name $j.Name -FailureType 'GetJob'
+                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                     continue nextDefinedJob
                 }
-                if ($DefinedJob.JobSplit -gt 1 -and ($RSJobs.Count -eq $DefinedJob.JobSplit) -eq $false)
+                if ($j.JobSplit -gt 1 -and ($RSJobs.Count -eq $j.JobSplit) -eq $false)
                 {
-                    $message = "$($DefinedJob.name): RSJob Count does not match Defined Job SplitJob specification."
+                    $message = "$($j.name): RSJob Count does not match Defined Job SplitJob specification."
                     Write-Warning -Message $message
+                    $NewlyFailedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'SplitJobCount'}})
+                    Add-JSMFailedJob -Name $j.Name -FailureType 'SplitJobCount'
+                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                     continue nextDefinedJob
                 }
                 #Log any Errors from the RS Job
                 if ($RSJobs.HasErrors -contains $true)
                 {
-                    $message = "$($DefinedJob.Name): reported errors"
+                    $message = "$($j.Name): reported errors"
                     Write-Warning -Message $message
                     $Errors = foreach ($rsJob in $RSJobs) {if ($rsJob.Error.count -gt 0) {$rsJob.Error.getenumerator()}}
                     if ($Errors.count -gt 0)
                     {
                         $ErrorStrings = $Errors | ForEach-Object -Process {$_.ToString()}
-                        Write-Warning -Message $($($DefinedJob.Name + ' Errors: ') + $($ErrorStrings -join '|'))
+                        Write-Warning -Message $($($j.Name + ' Errors: ') + $($ErrorStrings -join '|'))
                     }
                 }#if
                 #Receive the RS Job Results to generic JobResults variable.
                 try
                 {
-                    $message = "$($DefinedJob.Name): Receive Results to Generic JobResults variable pending validation"
+                    $message = "$($j.Name): Receive Results to Generic JobResults variable pending validation"
                     Write-Verbose -Message $message
                     $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop
                     Write-Verbose -Message $message
-                    #Update-JSMJobSetStatus -Job $DefinedJob.name -Message $message -Status $true
+                    #Update-JSMJobSetStatus -Job $j.name -Message $message -Status $true
                 }
                 catch
                 {
                     $myerror = $_.tostring()
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror
-                    $NewlyFailedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ReceiveRSJob'}})
-                    #Update-JSMJobSetStatus -Job $DefinedJob.name -Message $message -Status $false
+                    $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'ReceiveJob'}})
+                    Add-JSMFailedJob -Name $j.Name -FailureType 'ReceiveJob'
+                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                     Continue nextDefinedJob
                 }
                 #Validate the JobResultsVariable
-                if ($DefinedJob.ResultsValidation.count -gt 0)
+                if ($j.ResultsValidation.count -gt 0)
                 {
-                    $message = "$($DefinedJob.Name): Found Validation Tests to perform for JobResults"
+                    $message = "$($j.Name): Found Validation Tests to perform for JobResults"
                     Write-Verbose -Message $message
-                    $message = "$($DefinedJob.Name): Test JobResults for Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
+                    $message = "$($j.Name): Test JobResults for Validations ($($j.ResultsValidation.Keys -join ','))"
                     Write-Verbose -Message $message
-                    switch (Test-JSMJobResult -ResultsValidation $DefinedJob.ResultsValidation -JobResults $JobResults)
+                    switch (Test-JSMJobResult -ResultsValidation $j.ResultsValidation -JobResults $JobResults)
                     {
                         $true
                         {
-                            $message = "$($DefinedJob.Name): JobResults PASSED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
+                            $message = "$($j.Name): JobResults PASSED Validations ($($j.ResultsValidation.Keys -join ','))"
                             Write-Verbose -Message $message
                         }
                         $false
                         {
-                            $message = "$($DefinedJob.Name): JobResults FAILED Validations ($($DefinedJob.ResultsValidation.Keys -join ','))"
+                            $message = "$($j.Name): JobResults FAILED Validations ($($j.ResultsValidation.Keys -join ','))"
                             Write-Warning -Message $message
-                            $NewlyFailedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
+                            $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
+                            Add-JSMFailedJob -Name $j.Name -FailureType 'ResultsValidation'
+                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                             continue nextDefinedJob
                         }
                     }
                     }
                 else
                 {
-                    $message = "$($DefinedJob.Name): No Validation Tests defined for JobResults"
+                    $message = "$($j.Name): No Validation Tests defined for JobResults"
                     Write-Verbose -Message $message
                 }
-                switch ($DefinedJob.ResultsKeyVariableNames.count -ge 1)
+                switch ($j.ResultsKeyVariableNames.count -ge 1)
                 {
                     $true
                     {
-                        foreach ($v in $DefinedJob.ResultsKeyVariableNames)
+                        foreach ($v in $j.ResultsKeyVariableNames)
                         {
                             try
                             {
-                                $message = "$($DefinedJob.Name): Receive Key Results to Variable $v"
+                                $message = "$($j.Name): Receive Key Results to Variable $v"
                                 Write-Verbose -Message $message
                                 Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
                                 Write-Verbose -Message $message
@@ -171,8 +179,9 @@ function Start-JSMNewlyCompletedJobProcess
                                 $myerror = $_.tostring()
                                 Write-Warning -Message $message
                                 Write-Warning -Message $myerror
-                                $NewlyFailedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
-                                #Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
+                                $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
+                                Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariablefromKey'
+                                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                                 $ThisDefinedJobSuccessfullyCompleted = $false
                                 Continue nextDefinedJob
                             }
@@ -182,9 +191,9 @@ function Start-JSMNewlyCompletedJobProcess
                     {
                         Try
                         {
-                            $message = "$($DefinedJob.Name): Receive Results to Variable $($DefinedJob.ResultsVariableName)"
+                            $message = "$($j.Name): Receive Results to Variable $($j.ResultsVariableName)"
                             Write-Verbose -Message $message
-                            Set-Variable -Name $DefinedJob.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
+                            Set-Variable -Name $j.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
                             Write-Verbose -Message $message
                             $ThisDefinedJobSuccessfullyCompleted = $true
                         }
@@ -193,29 +202,29 @@ function Start-JSMNewlyCompletedJobProcess
                             $myerror = $_.tostring()
                             Write-Warning -Message $message
                             Write-Warning -Message $myerror
-                            $NewlyFailedJobs += $($DefinedJob | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
-                            #Update-JSMJobSetStatus -Job $Job.name -Message $message -Status $false
+                            $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
+                            Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariable'
+                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                             Continue nextDefinedJob
                         }
                     }
                 }
                 if ($ThisDefinedJobSuccessfullyCompleted -eq $true)
                 {
-                    $message = "$($DefinedJob.Name): Successfully Completed"
+                    $message = "$($j.Name): Successfully Completed"
                     Write-Verbose -Message $message
-                    #Update-JSMJobSetStatus -Job $DefinedJob.name -Message 'Job Successfully Completed' -Status $true
-                    Add-JSMCompletedJob -Name $DefinedJob.Name
-                    $NewlyCompletedJob.$($DefinedJob.Name)
+                    #Update-JSMJobSetStatus -Job $j.name -Message 'Job Successfully Completed' -Status $true
+                    Add-JSMCompletedJob -Name $j.Name
                     #Run PostJobCommands
-                    if ([string]::IsNullOrWhiteSpace($DefinedJob.PostJobCommands) -eq $false)
+                    if ([string]::IsNullOrWhiteSpace($j.PostJobCommands) -eq $false)
                     {
-                        $message = "$($DefinedJob.Name): Found PostJobCommands."
+                        $message = "$($j.Name): Found PostJobCommands."
                         Write-Verbose -Message $message
-                        $message = "$($DefinedJob.Name): Run PostJobCommands"
+                        $message = "$($j.Name): Run PostJobCommands"
                         try
                         {
                             Write-Verbose -Message $message
-                            . $($DefinedJob.PostJobCommands)
+                            . $($j.PostJobCommands)
                             Write-Verbose -Message $message
                         }
                         catch
@@ -229,11 +238,11 @@ function Start-JSMNewlyCompletedJobProcess
                     try
                     {
                         Remove-RSJob $RSJobs -ErrorAction Stop
-                        if ($DefinedJob.RemoveVariablesAtCompletion.count -gt 0)
+                        if ($j.RemoveVariablesAtCompletion.count -gt 0)
                         {
-                            $message = "$($DefinedJob.name): Removing Variables $($DefinedJob.RemoveVariablesAtCompletion -join ',')"
+                            $message = "$($j.name): Removing Variables $($j.RemoveVariablesAtCompletion -join ',')"
                             Write-Verbose -Message $message
-                            Remove-Variable -Name $DefinedJob.RemoveVariablesAtCompletion -ErrorAction Stop -Scope Global
+                            Remove-Variable -Name $j.RemoveVariablesAtCompletion -ErrorAction Stop -Scope Global
                             Write-Verbose -Message $message
                         }
                         Remove-Variable -Name JobResults -ErrorAction Stop
@@ -250,7 +259,6 @@ function Start-JSMNewlyCompletedJobProcess
                 #remove variables JobResults,SplitData,YourSplitData . . .
             }#foreach
             Write-Verbose -Message "Finished Processing Potential Newly Completed Jobs"
-            $NewlyCompletedJob
             $NewlyFailedJobs
         }
     }

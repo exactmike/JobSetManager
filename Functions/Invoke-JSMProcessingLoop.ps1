@@ -24,6 +24,8 @@ function Invoke-JSMProcessingLoop
         [switch]$PeriodicReport
         ,
         $PeriodicReportSettings
+        ,
+        [switch]$IgnoreFatalFailure
     )
     ##################################################################
     #Get the Required Jobs from the JobDefinitions
@@ -53,15 +55,16 @@ function Invoke-JSMProcessingLoop
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
     ##################################################################
-    $JobProcessingLoopFailure = $false
     $StopLoop = $false
+    $FatalFailure = $false
     Do
     {
         #Get Completed and Current Jobs
         $CompletedJobs = Get-JSMCompletedJob
         $CurrentJobs = Get-JSMCurrentJob -RequiredJob $RequiredJobs -CompletedJob $CompletedJobs
+        $FailedJobs = Get-JSMFailedJob
         #Check for jobs that meet their start criteria
-        $JobsToStart = @(Get-JSMNextJob -CompletedJobs $CompletedJobs -CurrentJobs $CurrentJobs -RequiredJobs $RequiredJobs)
+        $JobsToStart = @(Get-JSMNextJob -CompletedJob $CompletedJobs -CurrentJob $CurrentJobs -RequiredJob $RequiredJobs -FailedJob $FailedJobs -JobFailureRetryLimit $JobFailureRetryLimit)
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs To Start. Submitting to Start-JSMJob."
@@ -69,7 +72,7 @@ function Invoke-JSMProcessingLoop
             $FailedStartJobs = Start-JSMJob -Job $JobsToStart
         }#if
         #Check for newly completed jobs that may need to be received and validated and for newly failed jobs for fail processing
-        $NewlyCompletedJobs,$NewlyFailedJobs = Start-JSMNewlyCompletedJobProcess -CompletedJob $CompletedJobs -RequiredJob $RequiredJobs
+        $NewlyFailedJobs = Start-JSMNewlyCompletedJobProcess -CompletedJob $CompletedJobs -RequiredJob $RequiredJobs
         if ($null -ne $FailedStartJobs -and $FailedStartJobs.count -ge 1)
         {
             $NewlyFailedJobs += $FailedStartJobs
@@ -77,45 +80,19 @@ function Invoke-JSMProcessingLoop
         #move NewlyFailed handling out to discrete function soon - 20190127
         if ($NewlyFailedJobs.count -ge 1)
         {
-            foreach ($j in $newlyFailedJobs)
-            {
-                Add-JSMFailedJob -Name $j.Name -FailureType $j.FailureType
-                $FailedJobs = Get-JSMFailedJob
-                #if JobFailureRetryLimit exceeded then abort the loop
-                $JobFailureRetryLimitForThisJob = [math]::Max($j.JobFailureRetryLimit,$JobFailureRetryLimit)
-                if ($FailedJobs.$($j.name).FailureCount -ge $JobFailureRetryLimitForThisJob)
-                {
-                    $message = "$($j.Name): Exceeded JobFailureRetry Limit. Ending Job Processing Loop. Failure Count: $($FailedJobs.$($j.name).FailureCount). FailureTypes: $($FailedJobs.$($j.name).FailureType -join ',')"
-                    Write-Warning -Message $message
-                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
-                    $JobProcessingLoopFailure = $true
-                    $StopLoop = $true
-                }
-                else #otherwise remove the jobs and we'll try again next loop
-                {
-                    try
-                    {
-                        $message = "$($j.Name): Removing Failed RSJob(s)."
-                        Write-Verbose -Message $message
-                        Get-RSJob -Name $j.name | Remove-RSJob -ErrorAction Stop
-                        Write-Verbose -Message $message
-                    }
-                    catch
-                    {
-                        $myerror = $_.tostring()
-                        Write-Warning -Message $message
-                        Write-Warning -Message $myerror
-                    }
-                }
-            }
+            $message = "Found $($NewlyFailedJobs.Count) Newly Failed Jobs. Submitting to Start-JSMFailedJobProcess."
+            Write-Verbose -message $message
+            $FatalFailure = Start-JSMFailedJobProcess -NewlyFailedJobs $NewlyFailedJobs
         }
         $CompletedJobs = Get-JSMCompletedJob
         $CurrentJobs = Get-JSMCurrentJob -CompletedJob $CompletedJobs -RequiredJob $RequiredJobs
         $FailedJobs = Get-JSMFailedJob
-        if ($true -eq $Interactive -or $true -eq $PeriodicReport)
+        if ($true -eq $Interactive)
         {
+            $originalVerbosePreference = $VerbosePreference
+            $VerbosePreference = 'Continue'
             Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "$(Get-Date)" -Verbose
+            Write-Verbose -Message "$(Get-Date)"
             Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "Currently Running Jobs: $(($CurrentJobs.Keys | sort-object) -join ',')"
             Write-Verbose -Message "=========================================================================="
@@ -128,6 +105,12 @@ function Invoke-JSMProcessingLoop
                 Write-Verbose -Message "Jobs With Failed Attempts: $(($Script:FailedJobs.Keys | sort-object) -join ',' )"
                 Write-Verbose -Message "=========================================================================="
             }
+            if ($true -eq $FatalFailure)
+            {
+                Write-Verbose -Message "A Fatal Job Failure Has Occurred"
+                Write-Verbose -Message "=========================================================================="
+            }
+            $VerbosePreference = $originalVerbosePreference
         }
         if ($true -eq $PeriodicReport)
         {
@@ -137,6 +120,13 @@ function Invoke-JSMProcessingLoop
         {
             $StopLoop = $true
         }
+        elseif ($true -eq $FatalFailure)
+        {
+            if ($true -ne $IgnoreFatalFailure)
+            {
+                $stopLoop = $true
+            }
+        }
         else
         {
             Write-Verbose -message "Safe to interrupt loop for next $SleepSecondsBetweenJobCheck seconds"
@@ -145,12 +135,5 @@ function Invoke-JSMProcessingLoop
     }
     Until
     ($null -eq ((Compare-Object -DifferenceObject @($CompletedJobs.Keys) -ReferenceObject @($RequiredJobs.Name))) -or $StopLoop)
-    if ($JobProcessingLoopFailure)
-    {
-        $False
-    }
-    else
-    {
-        $true
-    }
+    $(-not $FatalFailure)
 }
