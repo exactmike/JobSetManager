@@ -88,12 +88,13 @@ function Start-JSMPeriodicReportProcess
         }
         if ($PeriodicReportSettings.SendEmail)
         {
-            #$(Get-JSMJobSetYUMLURL -JobSet $RequiredJobs -CompletedJobs $CompletedJobs -CurrentJobs $CurrentJobs -FailedJobs $FailedJobs -Progress)
+
             #$($script:JSMProcessingLoopStatus | ConvertTo-Html)
 $body =
 @"
 $($PeriodicReportJobStatus | ConvertTo-Html)
 
+$(Get-JSMJobSetYUMLURL -JobSet $RequiredJobs -CompletedJobs $CompletedJobs -CurrentJobs $CurrentJobs -FailedJobs $FailedJobs -Progress)
 "@
             $SendMailMessageParams = @{
                 Body = $body

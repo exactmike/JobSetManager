@@ -49,8 +49,6 @@ function Invoke-JSMProcessingLoop
     ##################################################################
     #Prep for Jobs Loop
     ##################################################################
-    $CompletedJobs = Get-JSMCompletedJob
-    $FailedJobs = Get-JSMFailedJob
     Start-JSMStopwatch
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
@@ -61,8 +59,8 @@ function Invoke-JSMProcessingLoop
     {
         #Get Completed and Current Jobs
         $CompletedJobs = Get-JSMCompletedJob
-        $CurrentJobs = Get-JSMCurrentJob -RequiredJob $RequiredJobs -CompletedJob $CompletedJobs
         $FailedJobs = Get-JSMFailedJob
+        $CurrentJobs = Get-JSMCurrentJob -RequiredJob $RequiredJobs -CompletedJob $CompletedJobs
         #Check for jobs that meet their start criteria
         $JobsToStart = @(Get-JSMNextJob -CompletedJob $CompletedJobs -CurrentJob $CurrentJobs -RequiredJob $RequiredJobs -FailedJob $FailedJobs -JobFailureRetryLimit $JobFailureRetryLimit)
         if ($JobsToStart.Count -ge 1)

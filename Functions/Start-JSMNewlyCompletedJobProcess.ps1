@@ -79,6 +79,7 @@ function Start-JSMNewlyCompletedJobProcess
                     Write-Verbose -Message $message
                     $RSJobs = @(Get-RSJob -Name $j.Name -ErrorAction Stop)
                     Write-Verbose -Message $message
+                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
                 }
                 catch
                 {
@@ -118,7 +119,7 @@ function Start-JSMNewlyCompletedJobProcess
                     Write-Verbose -Message $message
                     $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop
                     Write-Verbose -Message $message
-                    #Update-JSMJobSetStatus -Job $j.name -Message $message -Status $true
+                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
                 }
                 catch
                 {
@@ -143,6 +144,7 @@ function Start-JSMNewlyCompletedJobProcess
                         {
                             $message = "$($j.Name): JobResults PASSED Validations ($($j.ResultsValidation.Keys -join ','))"
                             Write-Verbose -Message $message
+                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
                         }
                         $false
                         {
@@ -172,6 +174,7 @@ function Start-JSMNewlyCompletedJobProcess
                                 Write-Verbose -Message $message
                                 Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
                                 Write-Verbose -Message $message
+                                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
                                 $ThisDefinedJobSuccessfullyCompleted = $true
                             }
                             catch
@@ -195,6 +198,7 @@ function Start-JSMNewlyCompletedJobProcess
                             Write-Verbose -Message $message
                             Set-Variable -Name $j.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
                             Write-Verbose -Message $message
+                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
                             $ThisDefinedJobSuccessfullyCompleted = $true
                         }
                         catch
@@ -213,7 +217,7 @@ function Start-JSMNewlyCompletedJobProcess
                 {
                     $message = "$($j.Name): Successfully Completed"
                     Write-Verbose -Message $message
-                    #Update-JSMJobSetStatus -Job $j.name -Message 'Job Successfully Completed' -Status $true
+                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
                     Add-JSMCompletedJob -Name $j.Name
                     #Run PostJobCommands
                     if ([string]::IsNullOrWhiteSpace($j.PostJobCommands) -eq $false)

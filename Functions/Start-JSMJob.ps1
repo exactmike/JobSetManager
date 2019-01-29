@@ -25,6 +25,7 @@ Function Start-JSMJob
                 Write-Verbose -Message $message
                 . $($j.PreJobCommands)
                 Write-Verbose -Message $message
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
             }
             catch
             {
@@ -33,6 +34,7 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'PreJobCommands'}})
                 Add-JSMFailedJob -Name $j.Name -FailureType 'PreJobCommands'
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                 continue nextJobToStart
             }
         }
@@ -55,6 +57,7 @@ Function Start-JSMJob
                         Write-Verbose -Message $message
                     }
                 )
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
             }
             catch
             {
@@ -63,6 +66,7 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'ArgumentListProcessing'}})
                 Add-JSMFailedJob -Name $j.Name -FailureType 'ArgumentListProcessing'
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                 continue nextJobToStart
             }
         }
@@ -77,6 +81,7 @@ Function Start-JSMJob
                 Write-Verbose -Message $message
                 $DataToSplit = Get-Variable -Name $j.JobSplitDataVariableName -ValueOnly -ErrorAction Stop
                 Write-Verbose -Message $message
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
             }
             catch
             {
@@ -85,6 +90,7 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'RetrievingSplitData'}})
                 Add-JSMFailedJob -Name $j.Name -FailureType 'RetrievingSplitData'
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                 continue nextJobToStart
             }
             try
@@ -93,6 +99,7 @@ Function Start-JSMJob
                 Write-Verbose -Message $message
                 $splitGroups = New-SplitArrayRange -inputArray $DataToSplit -parts $j.JobSplit -ErrorAction Stop
                 Write-Verbose -Message $message
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
             }
             catch
             {
@@ -101,6 +108,7 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'SplitDataCalculation'}})
                 Add-JSMFailedJob -Name $j.Name -FailureType 'SplitDataCalculation'
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
                 continue nextJobToStart
             }
             $splitjobcount = 0

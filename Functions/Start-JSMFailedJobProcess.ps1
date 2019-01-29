@@ -25,12 +25,14 @@ Function Start-JSMFailedJobProcess
                 Write-Verbose -Message $message
                 Get-RSJob -Name $j.name | Remove-RSJob -ErrorAction Stop
                 Write-Verbose -Message $message
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
             }
             catch
             {
                 $myerror = $_.tostring()
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
+                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
             }
         }
     }
