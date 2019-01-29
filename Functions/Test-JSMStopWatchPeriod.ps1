@@ -73,7 +73,7 @@ function Test-JSMStopWatchPeriod
             $true
             $script:LastUnits = $currentUnits
             Write-Verbose -Message "'FirstStopWatchPeriodTest' set to False"
-            $false
+            $script:FirstStopWatchPeriodTest = $false
             break
         }
         {($LastUnits + $length) -lt $currentUnits -and $MissedIntervalTrue}
