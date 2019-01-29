@@ -87,6 +87,7 @@ function Invoke-JSMProcessingLoop
         $CompletedJobs = Get-JSMCompletedJob
         $CurrentJobs = Get-JSMCurrentJob -CompletedJob $CompletedJobs -RequiredJob $RequiredJobs
         $FailedJobs = Get-JSMFailedJob
+        $PendingJobs = Get-JSMPendingJob -RequiredJob $RequiredJobs
         if ($true -eq $Interactive)
         {
             $originalVerbosePreference = $VerbosePreference
@@ -94,9 +95,9 @@ function Invoke-JSMProcessingLoop
             Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "$(Get-Date)"
             Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Currently Running Jobs: $(($CurrentJobs.Keys | sort-object) -join ',')"
+            Write-Verbose -Message "Pending Jobs: $(($PendingJobs.Keys | sort-object) -join ',')"
             Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Newly Completed Jobs: $(($NewlyCompletedJobs.Keys | sort-object) -join ',' )"
+            Write-Verbose -Message "Currently Running Jobs: $(($CurrentJobs.Keys | sort-object) -join ',')"
             Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "Completed Jobs: $(($CompletedJobs.Keys | sort-object) -join ',' )"
             Write-Verbose -Message "=========================================================================="
