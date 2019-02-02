@@ -34,7 +34,7 @@ function Invoke-JSMProcessingLoop
     {
         $message = 'Invoke-JobProcessingLoop: Get-RequiredJob'
         Write-Verbose -Message $message
-        $RequiredJobs = Get-JSMRequiredJob -Settings $Settings -JobDefinitions $jobDefinitions -ErrorAction Stop
+        $RequiredJobs = Get-JSMRequiredJob -Settings $Settings -JobDefinition $jobDefinitions -ErrorAction Stop
         $RequiredJobsLookup = @{}
         foreach ($j in $RequiredJobs) {$RequiredJobsLookup.$($j.name) = $true}
         Write-Verbose -Message $message

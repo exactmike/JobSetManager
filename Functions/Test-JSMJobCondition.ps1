@@ -10,7 +10,6 @@ function Test-JSMJobCondition
         $ConditionValuesObject
         ,
         [Parameter(Mandatory)]
-        [ValidateSet($true,$false)]
         [bool]$TestFor
     )
     switch ($TestFor)

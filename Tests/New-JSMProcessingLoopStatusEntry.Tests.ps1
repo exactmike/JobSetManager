@@ -6,7 +6,7 @@ Describe "$CommandName Unit Tests" -Tag 'UnitTests' {
         [object[]]$params = (Get-ChildItem "function:\$CommandName").Parameters.Keys
         $knownParameters = 'JobName','Message','Status','PassThru'
         $paramCount = $knownParameters.Count
-        It "Should contain our specific parameters" {
+        It "Should contain specific parameters" {
             ( (Compare-Object -ReferenceObject $knownParameters -DifferenceObject $params -IncludeEqual | Where-Object SideIndicator -eq "==").Count ) | Should Be $paramCount
         }
         It "Should only contain $paramCount parameters" {
@@ -30,7 +30,7 @@ Describe "$commandname Integration Tests" -Tags "IntegrationTests" {
             $Entry.status | Should Be $true
         }
 
-        It "Increments the EntryID" {
+        It "Increments and returns the EntryID" {
             $NextEntry = New-JSMProcessingLoopStatusEntry -JobName 'Job1' -Message 'Doing Something with or to Job1' -Status $false -PassThru
             $Entry.EntryID -lt $NextEntry.EntryID | Should Be $true
         }
