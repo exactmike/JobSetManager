@@ -79,7 +79,7 @@ function Start-JSMNewlyCompletedJobProcess
                     Write-Verbose -Message $message
                     $RSJobs = @(Get-RSJob -Name $j.Name -ErrorAction Stop)
                     Write-Verbose -Message $message
-                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                 }
                 catch
                 {
@@ -88,7 +88,7 @@ function Start-JSMNewlyCompletedJobProcess
                     Write-Warning -Message $myerror.tostring()
                     $NewlyFailedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'GetJob'}})
                     Add-JSMFailedJob -Name $j.Name -FailureType 'GetJob'
-                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
                     continue nextDefinedJob
                 }
                 if ($j.JobSplit -gt 1 -and ($RSJobs.Count -eq $j.JobSplit) -eq $false)
@@ -97,7 +97,7 @@ function Start-JSMNewlyCompletedJobProcess
                     Write-Warning -Message $message
                     $NewlyFailedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'SplitJobCount'}})
                     Add-JSMFailedJob -Name $j.Name -FailureType 'SplitJobCount'
-                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
                     continue nextDefinedJob
                 }
                 #Log any Errors from the RS Job
@@ -119,7 +119,7 @@ function Start-JSMNewlyCompletedJobProcess
                     Write-Verbose -Message $message
                     $JobResults = Receive-RSJob -Job $RSJobs -ErrorAction Stop
                     Write-Verbose -Message $message
-                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                 }
                 catch
                 {
@@ -128,7 +128,7 @@ function Start-JSMNewlyCompletedJobProcess
                     Write-Warning -Message $myerror
                     $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'ReceiveJob'}})
                     Add-JSMFailedJob -Name $j.Name -FailureType 'ReceiveJob'
-                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
                     Continue nextDefinedJob
                 }
                 #Validate the JobResultsVariable
@@ -144,7 +144,7 @@ function Start-JSMNewlyCompletedJobProcess
                         {
                             $message = "$($j.Name): JobResults PASSED Validations ($($j.ResultsValidation.Keys -join ','))"
                             Write-Verbose -Message $message
-                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
+                            Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                         }
                         $false
                         {
@@ -152,7 +152,7 @@ function Start-JSMNewlyCompletedJobProcess
                             Write-Warning -Message $message
                             $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
                             Add-JSMFailedJob -Name $j.Name -FailureType 'ResultsValidation'
-                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+                            Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
                             continue nextDefinedJob
                         }
                     }
@@ -174,7 +174,7 @@ function Start-JSMNewlyCompletedJobProcess
                                 Write-Verbose -Message $message
                                 Set-Variable -Name $v -Value $($JobResults.$($v)) -ErrorAction Stop -Scope Global
                                 Write-Verbose -Message $message
-                                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
+                                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                                 $ThisDefinedJobSuccessfullyCompleted = $true
                             }
                             catch
@@ -184,7 +184,7 @@ function Start-JSMNewlyCompletedJobProcess
                                 Write-Warning -Message $myerror
                                 $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
                                 Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariablefromKey'
-                                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+                                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
                                 $ThisDefinedJobSuccessfullyCompleted = $false
                                 Continue nextDefinedJob
                             }
@@ -198,7 +198,7 @@ function Start-JSMNewlyCompletedJobProcess
                             Write-Verbose -Message $message
                             Set-Variable -Name $j.ResultsVariableName -Value $JobResults -ErrorAction Stop -Scope Global
                             Write-Verbose -Message $message
-                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
+                            Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                             $ThisDefinedJobSuccessfullyCompleted = $true
                         }
                         catch
@@ -208,7 +208,7 @@ function Start-JSMNewlyCompletedJobProcess
                             Write-Warning -Message $myerror
                             $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
                             Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariable'
-                            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+                            Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
                             Continue nextDefinedJob
                         }
                     }
@@ -217,7 +217,7 @@ function Start-JSMNewlyCompletedJobProcess
                 {
                     $message = "$($j.Name): Successfully Completed"
                     Write-Verbose -Message $message
-                    Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                     Add-JSMCompletedJob -Name $j.Name
                     #Run PostJobCommands
                     if ([string]::IsNullOrWhiteSpace($j.PostJobCommands) -eq $false)

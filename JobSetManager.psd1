@@ -72,12 +72,14 @@ Description = 'add on module for poshrsjob to manage job hierarchies'
 FunctionsToExport = @(
     'Add-JSMCompletedJob'
     'Add-JSMFailedJob'
+    'Add-JSMProcessingLoopStatusEntry'
     'Clear-JSMCompletedJob'
     'Clear-JSMFailedJob'
     'Get-JSMCompletedJob'
     'Get-JSMCurrentJob'
     'Get-JSMFailedJob'
     'Get-JSMPendingJob'
+    'Get-JSMProcessingLoopStatusEntry'
     'Get-JSMJobSetYUMLURL'
     'Get-JSMNextJob'
     'Get-JSMRequiredJob'
@@ -98,8 +100,6 @@ FunctionsToExport = @(
     'Test-JSMJobCondition'
     'Test-JSMJobResult'
     'Test-JSMStopWatchPeriod'
-    'New-JSMProcessingLoopStatusEntry'
-    'Get-JSMProcessingLoopStatusEntry'
 )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

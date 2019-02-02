@@ -14,7 +14,7 @@ Function Start-JSMFailedJobProcess
         {
             $message = "$($j.Name): Exceeded JobFailureRetry Limit. Ending Job Processing Loop. Failure Count: $($FailedJobs.$($j.name).FailureCount). FailureTypes: $($FailedJobs.$($j.name).FailureType -join ',')"
             Write-Warning -Message $message
-            Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+            Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
             $FatalFailure = $true
         }
         else #otherwise remove the jobs and we'll try again next loop
@@ -25,14 +25,14 @@ Function Start-JSMFailedJobProcess
                 Write-Verbose -Message $message
                 Get-RSJob -Name $j.name | Remove-RSJob -ErrorAction Stop
                 Write-Verbose -Message $message
-                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $true
+                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
             }
             catch
             {
                 $myerror = $_.tostring()
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
-                Update-JSMProcessingLoopStatus -Job $j.name -Message $message -Status $false
+                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false
             }
         }
     }

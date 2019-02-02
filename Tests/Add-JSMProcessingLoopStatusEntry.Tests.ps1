@@ -17,7 +17,7 @@ Describe "$CommandName Unit Tests" -Tag 'UnitTests' {
 
 Describe "$commandname Integration Tests" -Tags "IntegrationTests" {
     Context "entry is correctly made and returned" {
-        $Entry = New-JSMProcessingLoopStatusEntry -JobName 'Job1' -Message 'Doing Something with or to Job1' -Status $true -PassThru
+        $Entry = Add-JSMProcessingLoopStatusEntry -JobName 'Job1' -Message 'Doing Something with or to Job1' -Status $true -PassThru
         It "returns the correct JobName" {
             $Entry.JobName | Should BeExactly 'Job1'
         }
@@ -31,8 +31,18 @@ Describe "$commandname Integration Tests" -Tags "IntegrationTests" {
         }
 
         It "Increments and returns the EntryID" {
-            $NextEntry = New-JSMProcessingLoopStatusEntry -JobName 'Job1' -Message 'Doing Something with or to Job1' -Status $false -PassThru
+            $NextEntry = Add-JSMProcessingLoopStatusEntry -JobName 'Job1' -Message 'Doing Something with or to Job1' -Status $false -PassThru
             $Entry.EntryID -lt $NextEntry.EntryID | Should Be $true
+        }
+    }
+}
+
+Describe "$commandname Example Tests" -Tags "Example" {
+    Context "entry is correctly made and returned" {
+        $AddEntry = Add-JSMProcessingLoopStatusEntry -JobName GetUsers -Message 'Ready to start' -Status $true -PassThru
+        $NewEntry = Get-JSMProcessingLoopStatusEntry -EntryID $AddEntry.EntryID
+        It "creates the correct Entry which is retrievable by Get-JSMProcessingLoopStatusEntry" {
+            Compare-Object -ReferenceObject $AddEntry -DifferenceObject $NewEntry | Should Be $null
         }
     }
 }
