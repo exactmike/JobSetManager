@@ -50,6 +50,7 @@ function Add-JSMProcessingLoopStatusEntry
       JobName = $JobName;
       Message = $Message;
       Status = $Status
+      EventID = $EventID
     }
     $null = $script:JSMProcessingLoopStatus.add($Entry)
     if ($true -eq $PassThru)

@@ -24,4 +24,6 @@ function Add-JSMFailedJob
             }
         }
     }
+    Add-JSMProcessingLoopStatusEntry -JobName $Name -Message "Job Attempt Failed" -Status $false -EventID 427
+    Add-JSMProcessingLoopStatusEntry -JobName $Name -Message "Job $name added to Job Failures." -Status $false -EventID 502
 }

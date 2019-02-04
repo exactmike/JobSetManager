@@ -26,6 +26,8 @@ function Invoke-JSMProcessingLoop
         $PeriodicReportSettings
         ,
         [switch]$IgnoreFatalFailure
+        ,
+        [switch]$SuppressVariableRemoval
     )
     ##################################################################
     #Get the Required Jobs from the JobDefinitions
@@ -70,7 +72,12 @@ function Invoke-JSMProcessingLoop
             $FailedStartJobs = Start-JSMJob -Job $JobsToStart
         }#if
         #Check for newly completed jobs that may need to be received and validated and for newly failed jobs for fail processing
-        $NewlyFailedJobs = Start-JSMNewlyCompletedJobProcess -CompletedJob $CompletedJobs -RequiredJob $RequiredJobs
+        $JSMNCJPParams = @{
+            CompletedJob = $CompletedJobs
+            RequiredJob = $RequiredJobs
+        }
+        if ($true -eq $SuppressVariableRemoval) {$JSMNCJPParams.SuppressVariableRemoval = $true}
+        $NewlyFailedJobs = Start-JSMNewlyCompletedJobProcess @JSMNCJPParams
         if ($null -ne $FailedStartJobs -and $FailedStartJobs.count -ge 1)
         {
             $NewlyFailedJobs += $FailedStartJobs
