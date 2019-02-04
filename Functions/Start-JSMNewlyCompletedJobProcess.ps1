@@ -111,6 +111,7 @@ function Start-JSMNewlyCompletedJobProcess
                         $ErrorStrings = $Errors | ForEach-Object -Process {$_.ToString()}
                         Write-Warning -Message $($($j.Name + ' Errors: ') + $($ErrorStrings -join '|'))
                     }
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                 }#if
                 #Receive the RS Job Results to generic JobResults variable.
                 try
@@ -161,6 +162,7 @@ function Start-JSMNewlyCompletedJobProcess
                 {
                     $message = "$($j.Name): No Validation Tests defined for JobResults"
                     Write-Verbose -Message $message
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true
                 }
                 switch ($j.ResultsKeyVariableNames.count -ge 1)
                 {

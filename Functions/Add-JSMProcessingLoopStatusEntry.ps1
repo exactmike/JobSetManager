@@ -30,6 +30,11 @@ function Add-JSMProcessingLoopStatusEntry
       [parameter()]
       [bool]$Status
       ,
+      # EventID From predefined list of EventIDs.
+      [Parameter(Mandatory)]
+      [Int]
+      $EventID
+      ,
       [parameter()]
       [switch]$PassThru
     )
