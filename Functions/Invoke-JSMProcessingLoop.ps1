@@ -5,7 +5,7 @@ function Invoke-JSMProcessingLoop
     (
         [parameter()]
         [Alias('Settings')]
-        $Conditions
+        $Condition
         ,
         # The Job Definitions for the Job Set you want to invoke
         [Parameter(Mandatory)]
@@ -44,9 +44,9 @@ function Invoke-JSMProcessingLoop
             JobDefinition = $JobDefinitions
             ErrorAction = 'Stop'
         }
-        if ($PSBoundParameters.ContainsKey('Conditions'))
+        if ($PSBoundParameters.ContainsKey('Condition'))
         {
-            $GRJParams.Conditions = $Conditions
+            $GRJParams.Condition = $Condition
         }
         $RequiredJobs = Get-JSMRequiredJob @GRJParams
         $RequiredJobsLookup = @{}

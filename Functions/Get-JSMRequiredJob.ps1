@@ -3,16 +3,16 @@ function Get-JSMRequiredJob
     [cmdletbinding()]
     param
     (
-        $Conditions
+        $Condition
         ,
         [psobject[]]$JobDefinition
     )
     #Only the jobs that meet the settings conditions or not conditions are required
-    if ($PSBoundParameters.ContainsKey('Conditions'))
+    if ($PSBoundParameters.ContainsKey('Condition'))
     {
         $RequiredJobFilter = [scriptblock] {
-            (($_.OnCondition.count -eq 0) -or (Test-JSMJobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Settings -TestFor $True)) -and
-            (($_.OnNOTCondition.count -eq 0) -or (Test-JSMJobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Settings -TestFor $False))
+            (($_.OnCondition.count -eq 0) -or (Test-JSMJobCondition -JobConditionList $_.OnCondition -ConditionValuesObject $Condition -TestFor $True)) -and
+            (($_.OnNOTCondition.count -eq 0) -or (Test-JSMJobCondition -JobConditionList $_.OnNotCondition -ConditionValuesObject $Condition -TestFor $False))
         }
     }
     else {
