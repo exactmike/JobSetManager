@@ -46,7 +46,7 @@ function Add-JSMProcessingLoopStatusEntry
     $script:JSMProcessingLoopStatusEntryID++
     $Entry = [pscustomobject]@{
       EntryID = $script:JSMProcessingLoopStatusEntryID;
-      TimeStamp = Get-TimeStamp;
+      TimeStamp = Get-Date
       JobName = $JobName;
       Message = $Message;
       Status = $Status

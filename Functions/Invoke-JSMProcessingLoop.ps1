@@ -3,8 +3,12 @@ function Invoke-JSMProcessingLoop
     [cmdletbinding()]
     param
     (
-        $Settings
+        [parameter()]
+        [Alias('Settings')]
+        $Conditions
         ,
+        # The Job Definitions for the Job Set you want to invoke
+        [Parameter(Mandatory)]
         [psobject[]]$JobDefinitions
         ,
         [parameter()]
@@ -36,7 +40,15 @@ function Invoke-JSMProcessingLoop
     {
         $message = 'Invoke-JobProcessingLoop: Get-RequiredJob'
         Write-Verbose -Message $message
-        $RequiredJobs = Get-JSMRequiredJob -Settings $Settings -JobDefinition $jobDefinitions -ErrorAction Stop
+        $GRJParams = @{
+            JobDefinition = $JobDefinitions
+            ErrorAction = 'Stop'
+        }
+        if ($PSBoundParameters.ContainsKey('Conditions'))
+        {
+            $GRJParams.Conditions = $Conditions
+        }
+        $RequiredJobs = Get-JSMRequiredJob @GRJParams
         $RequiredJobsLookup = @{}
         foreach ($j in $RequiredJobs) {$RequiredJobsLookup.$($j.name) = $true}
         Write-Verbose -Message $message
@@ -69,15 +81,15 @@ function Invoke-JSMProcessingLoop
         {
             $message = "Found $($JobsToStart.Count) Jobs To Start. Submitting to Start-JSMJob."
             Write-Verbose -message $message
-            $FailedStartJobs = Start-JSMJob -Job $JobsToStart
+            $FailedStartJobs = @(Start-JSMJob -Job $JobsToStart)
         }#if
         #Check for newly completed jobs that may need to be received and validated and for newly failed jobs for fail processing
-        $JSMNCJPParams = @{
+        $SNCJPParams = @{
             CompletedJob = $CompletedJobs
             RequiredJob = $RequiredJobs
         }
-        if ($true -eq $SuppressVariableRemoval) {$JSMNCJPParams.SuppressVariableRemoval = $true}
-        $NewlyFailedJobs = Start-JSMNewlyCompletedJobProcess @JSMNCJPParams
+        if ($true -eq $SuppressVariableRemoval) {$SNCJPParams.SuppressVariableRemoval = $true}
+        $NewlyFailedJobs = Start-JSMNewlyCompletedJobProcess @SNCJPParams
         if ($null -ne $FailedStartJobs -and $FailedStartJobs.count -ge 1)
         {
             $NewlyFailedJobs += $FailedStartJobs
@@ -135,8 +147,10 @@ function Invoke-JSMProcessingLoop
         }
         else
         {
+            if ($Interactive) {$VerbosePreference = 'Continue'}
             Write-Verbose -message "Safe to interrupt loop for next $SleepSecondsBetweenJobCheck seconds"
             Start-Sleep -Seconds $SleepSecondsBetweenJobCheck
+            if ($Interactive) {$VerbosePreference = $originalVerbosePreference}
         }
     }
     Until
