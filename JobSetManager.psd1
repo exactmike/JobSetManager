@@ -97,7 +97,7 @@ FunctionsToExport = @(
     'Remove-JSMFailedJob'
     'Remove-JSMVariable'
     'Set-JSMJobAttempt'
-    'Set-JSMPeriodicReportSettings'
+    'Set-JSMPeriodicReportSetting'
     'Set-JSMVariable'
     'Start-JSMStopwatch'
     'Start-JSMJob'
