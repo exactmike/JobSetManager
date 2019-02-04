@@ -22,7 +22,8 @@ function Test-JSMStopWatchPeriod
         [parameter()]
         [switch]$Reset
     )
-    $currentUnits = [math]::Truncate($stopwatch.Elapsed.$('Total' + $Units))
+    $InvokeUnits = "Total$Units"
+    $currentUnits = [math]::Truncate($stopwatch.Elapsed.$($InvokeUnits))
     Write-Verbose -Message "CurrentUnits current value is $currentUnits"
     switch (Test-Path 'variable:script:LastUnits')
     {

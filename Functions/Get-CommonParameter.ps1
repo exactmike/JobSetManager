@@ -1,8 +1,9 @@
-    Function Get-CommonParameter
-    {
-
+Function Get-CommonParameter
+{
     [cmdletbinding(SupportsShouldProcess)]
     param()
-    $MyInvocation.MyCommand.Parameters.Keys
-
+    if ($PSCmdlet.ShouldProcess())
+    {
+        $MyInvocation.MyCommand.Parameters.Keys
     }
+}
