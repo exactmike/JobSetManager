@@ -23,33 +23,26 @@ function Start-JSMPeriodicReportProcess
         [bool]$SendTheReport = Test-JSMStopWatchPeriod @TestStopWatchPeriodParams
         Write-Verbose -Message "SendtheReport is set to $SendTheReport"
     }
-    if ($SendTheReport)
+    if ($true -eq $SendTheReport -and $PeriodicReportSettings.SendEmail)
     {
-
-    }
-    if ($PeriodicReportSettings.SendEmail)
-    {
-
-            #$($script:JSMProcessingLoopStatus | ConvertTo-Html)
-$body =
+        $body =
 @"
 $($script:JSMProcessingLoopStatus | ConvertTo-Html)
 
 $(Get-JSMJobSetYUMLURL -JobSet $RequiredJobs -CompletedJobs $CompletedJobs -CurrentJobs $CurrentJobs -FailedJobs $FailedJobs -Progress)
 "@
-            $SendMailMessageParams = @{
-                Body = $body
-                Subject = $PeriodicReportSettings.Subject
-                BodyAsHTML = $true
-                To = $PeriodicReportSettings.Recipient
-                From = $PeriodicReportSettings.Sender
-                SmtpServer = $PeriodicReportSettings.SmtpServer
-            }
-            if ($PeriodicReportSettings.attachlog)
-            {
-                $SendMailMessageParams.attachments = $logpath
-            }
-            Send-MailMessage @SendMailMessageParams
+        $SendMailMessageParams = @{
+            Body = $body
+            Subject = $PeriodicReportSettings.Subject
+            BodyAsHTML = $true
+            To = $PeriodicReportSettings.Recipient
+            From = $PeriodicReportSettings.Sender
+            SmtpServer = $PeriodicReportSettings.SmtpServer
         }
+        if ($PeriodicReportSettings.attachlog)
+        {
+            $SendMailMessageParams.attachments = $logpath
+        }
+        Send-MailMessage @SendMailMessageParams
     }
 }
