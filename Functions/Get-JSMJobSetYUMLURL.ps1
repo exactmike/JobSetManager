@@ -43,7 +43,7 @@ function Get-JSMJobSetYUMLURL
                 $true
                 {'palegoldenrod'}
                 $false
-                {'palegreen'}
+                {'skyblue'}
             }
         }
         elseif ($FailedJobs.ContainsKey($JobName))
