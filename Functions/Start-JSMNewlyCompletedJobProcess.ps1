@@ -104,7 +104,7 @@ function Start-JSMNewlyCompletedJobProcess
                 else
                 {
                     $message = "$($j.name): Job Engine Job Count Matches JSM Job SplitJob specification."
-                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false -EventID 406
+                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 406
                 }
                 #Log any Errors from the RS Job
                 if ($RSJobs.HasErrors -contains $true)
@@ -265,7 +265,7 @@ function Start-JSMNewlyCompletedJobProcess
                             Write-Verbose -Message $message
                         }
                         Remove-Variable -Name JobResults -ErrorAction Stop
-                        Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false -EventID 434
+                        Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 434
                     }
                     catch
                     {
