@@ -96,6 +96,6 @@ function Get-JSMJobSetYUMLURL
             }
         }
     )
-    $string
-    #"https://yuml.me/diagram/plain;dir:RL/class/" + $([uri]::EscapeDataString($string)) + ".jpg"
+    #$string
+    "https://yuml.me/diagram/plain;dir:RL/class/" + $([uri]::EscapeDataString($string)) + ".jpg"
 }
