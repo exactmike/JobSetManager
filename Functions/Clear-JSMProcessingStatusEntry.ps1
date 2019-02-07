@@ -1,4 +1,4 @@
-function Clear-JSMJobAttempt
+function Clear-JSMProcessingStatusEntry
 {
     [cmdletbinding(DefaultParameterSetName = 'All')]
     param(
@@ -17,7 +17,8 @@ function Clear-JSMJobAttempt
             'All'
             {
                 Initialize-TrackingVariable
-                $script:JobAttempts.clear()
+                [int32]$script:JSMProcessingStatusEntryID = 0
+                $script:JSMProcessingLoopStatus.clear()
             }
         }
     }

@@ -1,5 +1,15 @@
-function Get-JSMProcessingLoopStatusEntry
+function Get-JSMProcessingStatusEntry
 {
+    <#
+    .SYNOPSIS
+        Gets entries from the module scope array variablle JSMProcessingLoopStatus
+    .DESCRIPTION
+        Gets all entries or specified entries (by JobName or EntryID) from the module scope array variable JSMProcessingLoopStatus
+    .EXAMPLE
+        PS C:\> Get-JSMProcessingStatusEntry
+
+        Gets all entries from the JSMProcessingLoopStatus module array variable.
+    #>
     [CmdletBinding(DefaultParameterSetName = 'All')]
     param
     (
@@ -16,9 +26,10 @@ function Get-JSMProcessingLoopStatusEntry
 
     begin
     {
-        if (-not $(Test-JSMProcessingLoopStatusExists))
+        if (-not $(Test-ExistsJSMProcessingStatus))
         {
             throw('JSMProcessingLoopStatus is not initialized')
+            Return
         }
     }
 

@@ -12,7 +12,7 @@ function Add-JSMJobAttempt
         [ValidateSet('RSJob','PSJob')]
         [string]$JobType = 'RSJob'
     )
-    Initialize-TrackingVariables
+    Initialize-TrackingVariable
     $JobAttempt = [PSCustomObject]@{
         JobName = $JobName
         Attempt = $Attempt

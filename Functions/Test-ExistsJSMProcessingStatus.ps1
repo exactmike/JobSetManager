@@ -1,4 +1,4 @@
-function Test-JSMProcessingLoopStatusExists
+function Test-ExistsJSMProcessingStatus
 {
     [CmdletBinding()]
     param ()

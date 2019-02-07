@@ -1,4 +1,4 @@
-function Add-JSMProcessingLoopStatusEntry
+function Add-JSMProcessingStatusEntry
 {
   <#
   .SYNOPSIS
@@ -9,7 +9,7 @@ function Add-JSMProcessingLoopStatusEntry
     The entry is structured in the sense that it includes attributes for JobName, Message, and Status and automatically adds a TimeStamp
 
   .EXAMPLE
-    PS C:\> Add-JSMProcessingLoopStatusEntry -JobName GetUsers -Message 'Ready to start' -Status $true -PassThru
+    PS C:\> Add-JSMProcessingStatusEntry -JobName GetUsers -Message 'Ready to start' -Status $true -PassThru
 
     Creates an custom PSObject entry in JSMProcessingLoopStatus with JobName = 'GetUsers', Message = 'Ready to start', and status = $true, timestamp = current time.  -Passthru also causes the entry to be sent to standard output.
   .NOTES
@@ -38,14 +38,14 @@ function Add-JSMProcessingLoopStatusEntry
       [parameter()]
       [switch]$PassThru
     )
-    if ($false -eq (Test-JSMProcessingLoopStatusExists))
+    if ($false -eq (Test-ExistsJSMProcessingStatus))
     {
       $script:JSMProcessingLoopStatus = @(); $script:JSMProcessingLoopStatus = {$script:JSMProcessingLoopStatus}.Invoke()
-      [int32]$script:JSMProcessingLoopStatusEntryID = 0
+      [int32]$script:JSMProcessingStatusEntryID = 0
     }
-    $script:JSMProcessingLoopStatusEntryID++
+    $script:JSMProcessingStatusEntryID++
     $Entry = [pscustomobject]@{
-      EntryID = $script:JSMProcessingLoopStatusEntryID;
+      EntryID = $script:JSMProcessingStatusEntryID;
       TimeStamp = Get-Date
       JobName = $JobName;
       Message = $Message;

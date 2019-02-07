@@ -45,7 +45,7 @@ function Get-JSMJobAttempt
         [ValidateSet('Complete','Fail','None')]
         [object[]]$StopType
     )
-    Initialize-TrackingVariables
+    Initialize-TrackingVariable
     switch ($PSCmdlet.ParameterSetName)
     {
         'All'

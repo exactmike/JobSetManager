@@ -8,7 +8,7 @@ Function Start-JSMJob
     {
         $message = "$($j.Name): Ready to Start"
         Write-Verbose -message $message
-        Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 302
+        Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 302
     }
     $FailedStartJobs = @(); $FailedStartJobs = {$FailedStartJobs}.invoke()
     #Start the jobs
@@ -31,7 +31,7 @@ Function Start-JSMJob
                 . $($j.PreJobCommands)
                 $ErrorActionPreference = $OriginalErrorActionPreference
                 Write-Verbose -Message $message
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 306
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 306
             }
             catch
             {
@@ -40,7 +40,7 @@ Function Start-JSMJob
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'PreJobCommands'}}))
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false -EventID 307
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 307
                 Add-JSMFailedJob -Name $j.Name -FailureType 'PreJobCommands'
                 continue nextJobToStart
             }
@@ -64,7 +64,7 @@ Function Start-JSMJob
                         Write-Verbose -Message $message
                     }
                 )
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message1 -Status $true -EventID 310
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message1 -Status $true -EventID 310
             }
             catch
             {
@@ -72,7 +72,7 @@ Function Start-JSMJob
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'ProcessArgumentList'}}))
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message1 -Status $false -EventID 311
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message1 -Status $false -EventID 311
                 Add-JSMFailedJob -Name $j.Name -FailureType 'ProcessArgumentList'
                 continue nextJobToStart
             }
@@ -88,7 +88,7 @@ Function Start-JSMJob
                 Write-Verbose -Message $message
                 $DataToSplit = Get-Variable -Name $j.JobSplitDataVariableName -ValueOnly -ErrorAction Stop
                 Write-Verbose -Message $message
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 314
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 314
             }
             catch
             {
@@ -96,7 +96,7 @@ Function Start-JSMJob
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitDataSourceRetrieval'}}))
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
                 Add-JSMFailedJob -Name $j.Name -FailureType 'SplitDataSourceRetrieval'
                 continue nextJobToStart
             }
@@ -106,7 +106,7 @@ Function Start-JSMJob
                 Write-Verbose -Message $message
                 $splitGroups = New-SplitArrayRange -inputArray $DataToSplit -parts $j.JobSplit -ErrorAction Stop
                 Write-Verbose -Message $message
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 314
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 314
             }
             catch
             {
@@ -114,7 +114,7 @@ Function Start-JSMJob
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitDataCalculation'}}))
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
                 Add-JSMFailedJob -Name $j.Name -FailureType 'SplitDataCalculation'
                 continue nextJobToStart
             }
@@ -129,7 +129,7 @@ Function Start-JSMJob
                     Write-Verbose -Message $message
                     Start-RSJob @StartRSJobParams | Out-Null
                     Write-Verbose -Message $message
-                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
+                    Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
                 }
                 catch
                 {
@@ -137,7 +137,7 @@ Function Start-JSMJob
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror
                     $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'JobStartWithSplitData'}}))
-                    Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
+                    Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
                     Add-JSMFailedJob -Name $j.Name -FailureType 'JobStartWithSplitData'
                     continue nextJobToStart
                 }
@@ -152,7 +152,7 @@ Function Start-JSMJob
                 Write-Verbose -Message $message
                 Start-RSJob @StartRSJobParams | Out-Null
                 Write-Verbose -Message $message
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
             }
             catch
             {
@@ -160,7 +160,7 @@ Function Start-JSMJob
                 Write-Warning -Message $message
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'JobEngineJobStart'}}))
-                Add-JSMProcessingLoopStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
+                Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
                 Add-JSMFailedJob -Name $j.Name -FailureType 'JobEngineJobStart'
                 continue nextJobToStart
             }

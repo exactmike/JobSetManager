@@ -23,14 +23,14 @@ function Get-JSMRequiredJob
     {
         $message = "Get-RequiredJob: No Required Jobs Found"
         Write-Warning -Message $message
-        Add-JSMProcessingLoopStatusEntry -JobName 'RequiredJobs' -Message $message -Status $false -EventID 103
+        Add-JSMProcessingStatusEntry -JobName 'RequiredJobs' -Message $message -Status $false -EventID 103
         $null
     }
     else
     {
         $message = "Get-RequiredJob: Found $($RequiredJobs.Count) RequiredJobs as follows: $($RequiredJobs.Name -join ', ')"
         Write-Verbose -Message $message
-        Add-JSMProcessingLoopStatusEntry -JobName 'RequiredJobs' -Message $message -Status $true -EventID 102
+        Add-JSMProcessingStatusEntry -JobName 'RequiredJobs' -Message $message -Status $true -EventID 102
         $RequiredJobs
     }
 }
