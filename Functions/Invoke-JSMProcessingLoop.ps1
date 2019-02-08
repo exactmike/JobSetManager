@@ -62,6 +62,7 @@ function Invoke-JSMProcessingLoop
     #Prep for Jobs Loop
     ##################################################################
     Start-JSMStopwatch
+    Initialize-TrackingVariable
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
     ##################################################################

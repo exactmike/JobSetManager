@@ -39,6 +39,7 @@ $(Get-JSMJobSetYUMLURL -JobSet $JobRequired -JobCompletion $JobCompletion -JobCu
             From = $PeriodicReportSetting.From
             SmtpServer = $PeriodicReportSetting.SmtpServer
             Port = $PeriodicReportSetting.SMTPPort
+            UseSSL = $true
         }
         if ($null -ne $PeriodicReportSetting.SMTPCredential)
         {

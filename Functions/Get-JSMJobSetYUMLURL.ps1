@@ -9,37 +9,36 @@ function Get-JSMJobSetYUMLURL
         [switch]$Progress
         ,
         [parameter(ParameterSetName = 'Progress',Mandatory)]
-        [AllowNull()]
         [AllowEmptyCollection()]
         $JobCompletion
         ,
         [parameter(ParameterSetName = 'Progress',Mandatory)]
-        [AllowNull()]
         [AllowEmptyCollection()]
         $JobCurrent
         ,
         [parameter(ParameterSetName = 'Progress',Mandatory)]
-        [AllowNull()]
         [AllowEmptyCollection()]
         $JobFailure
     )
-    function Get-BGColor {
-        param(
+    function Get-BGColor
+    {
+        param
+        (
             $JobName
             ,
-            $CurrentJobs
+            $JobCurrent
             ,
-            $JobCompletions
+            $JobCompletion
             ,
-            $FailedJobs
+            $JobFailure
         )
-        if ($JobCompletions.ContainsKey($JobName))
+        if ($JobCompletion.ContainsKey($JobName))
         {
             'limegreen'
         }
-        elseif ($CurrentJobs.ContainsKey($JobName))
+        elseif ($JobCurrent.ContainsKey($JobName))
         {
-            switch ($FailedJobs.ContainsKey($JobName))
+            switch ($JobFailure.ContainsKey($JobName))
             {
                 $true
                 {'palegoldenrod'}
@@ -47,7 +46,7 @@ function Get-JSMJobSetYUMLURL
                 {'skyblue'}
             }
         }
-        elseif ($FailedJobs.ContainsKey($JobName))
+        elseif ($JobFailure.ContainsKey($JobName))
         {
             'red'
         }
@@ -56,6 +55,7 @@ function Get-JSMJobSetYUMLURL
             'tan'
         }
     }
+    #end function Get-BGColor
     $string = $(
         Switch ($PSCmdlet.ParameterSetName)
         {
@@ -79,7 +79,7 @@ function Get-JSMJobSetYUMLURL
                 foreach ($job in $JobSet)
                 {
                     $JobName = $job | Select-Object -ExpandProperty Name
-                    $Color = Get-BGColor -JobName $JobName -CurrentJobs $CurrentJobs -JobCompletions $JobCompletions -FailedJobs $FailedJobs
+                    $Color = Get-BGColor -JobName $JobName -JobCurrent $JobCurrent -JobCompletion $JobCompletion -JobFailure $JobFailure
                     $JobYUML.$($JobName) = "[ $JobName {bg:$Color}]"
                 }
                 $(
