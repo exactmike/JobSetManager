@@ -10,7 +10,7 @@
     }
     DependsOnJobs = @()
     OnCondition = @()
-    OnNotCondition = @('')
+    OnNotCondition = @()
     ResultsVariableName = 'TestJob1Items'
     ResultsValidation = @{
         ValidateType = [array]
@@ -36,11 +36,56 @@
     }
     DependsOnJobs = @()
     OnCondition = @()
-    OnNotCondition = @('')
+    OnNotCondition = @()
     ResultsVariableName = 'TestJob2Items'
     ResultsValidation = @{
         ValidateType = [hashtable]
         ValidateElementCountExpression = '-eq 5'
+    }
+    RemoveVariablesAtCompletion = @()
+    PostJobCommands = [ScriptBlock]{
+        $null = Get-Command Get-Command -ErrorAction Stop
+    }
+}
+[pscustomobject]@{Name = 'TestJob3'
+    Message = "Runs a Test Job 3"
+    PreJobCommands = [ScriptBlock]{
+        $null = Get-Command Get-Command -ErrorAction Stop
+    }
+    StartRSJobParams = @{
+        ScriptBlock = {
+            $using:TestJob1Items | Measure-object -property ItemID -Maximum -Minimum -Average -Sum
+        }
+    }
+    DependsOnJobs = @('TestJob1')
+    OnCondition = @()
+    OnNotCondition = @()
+    ResultsVariableName = 'TestJob3Object'
+    ResultsValidation = @{
+        ValidateType = [Microsoft.PowerShell.Commands.GenericMeasureInfo]
+    }
+    RemoveVariablesAtCompletion = @()
+    PostJobCommands = [ScriptBlock]{
+        $null = Get-Command Get-Command -ErrorAction Stop
+    }
+}
+[pscustomobject]@{Name = 'TestJob4'
+    Message = "Runs a Test Job 4"
+    PreJobCommands = [ScriptBlock]{
+        $null = Get-Command Get-Command -ErrorAction Stop
+    }
+    StartRSJobParams = @{
+        ScriptBlock = {
+            $ToProcess = $using:TestJob2Items
+            $ToProcess.Values | foreach-object {{$_}.invoke()}
+        }
+    }
+    DependsOnJobs = @('TestJob2')
+    OnCondition = @()
+    OnNotCondition = @('')
+    ResultsVariableName = 'TestJob4Object'
+    ResultsValidation = @{
+        ValidateElementMember = @('time')
     }
     RemoveVariablesAtCompletion = @()
     PostJobCommands = [ScriptBlock]{

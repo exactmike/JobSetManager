@@ -144,7 +144,7 @@ function Invoke-JSMProcessingLoop
             }
         }
         else
-        {
+        {   #add a check here for situation all jobs completed and skip if so
             if ($Interactive) {$VerbosePreference = 'Continue'}
             Write-Verbose -message "Safe to interrupt loop for next $SleepSecondsBetweenJobCheck seconds"
             Start-Sleep -Seconds $SleepSecondsBetweenJobCheck

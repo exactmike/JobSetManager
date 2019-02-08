@@ -19,7 +19,7 @@ function Get-JSMJobNext
         [int]$JobFailureRetryLimit
     )
     $JobsToStart = @(
-        foreach ($j in $RequiredJob)
+        foreach ($j in $JobRequired)
         {
             $JobFailureRetryLimitForThisJob = [math]::Max($j.JobFailureRetryLimit,$JobFailureRetryLimit)
             if (

@@ -5,7 +5,7 @@ Function Start-JSMJobFailureProcess
         [psobject[]]$NewJobFailure
     )
     $FatalFailure = $false
-    foreach ($j in $newlyFailedJobs)
+    foreach ($j in $NewJobFailure)
     {
         $FailedJobs = Get-JSMJobFailure
         #if JobFailureRetryLimit exceeded then abort the loop

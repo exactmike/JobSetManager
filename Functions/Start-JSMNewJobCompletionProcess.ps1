@@ -23,7 +23,7 @@ function Start-JSMNewJobCompletionProcess
                     continue nextRSJob
                 }
                 #Match the RS Job to the Job Definition
-                $DefinedJob = @($RequiredJob | Where-Object -FilterScript {$_.name -eq $rsJob.name})
+                $DefinedJob = @($JobRequired | Where-Object -FilterScript {$_.name -eq $rsJob.name})
                 switch ($DefinedJob.Count)
                 {
                     1
@@ -88,7 +88,7 @@ function Start-JSMNewJobCompletionProcess
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror.tostring()
                     $NewJobFailures.add($($job | Select-Object -Property *,@{n='FailureType';e={'GetJob'}}))
-                    Add-JSMFailedJob -Name $j.Name -FailureType 'GetJob'
+                    Add-JSMJobFailure -Name $j.Name -FailureType 'GetJob'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 403
                     continue nextDefinedJob
                 }
@@ -97,7 +97,7 @@ function Start-JSMNewJobCompletionProcess
                     $message = "$($j.name): Job Engine Job Count does not match JSM Job SplitJob specification."
                     Write-Warning -Message $message
                     $NewJobFailures.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitJobCount'}}))
-                    Add-JSMFailedJob -Name $j.Name -FailureType 'SplitJobCount'
+                    Add-JSMJobFailure -Name $j.Name -FailureType 'SplitJobCount'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 407
                     continue nextDefinedJob
                 }
@@ -139,7 +139,7 @@ function Start-JSMNewJobCompletionProcess
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror
                     $NewJobFailures.Add($($j | Select-Object -Property *,@{n='FailureType';e={'ReceiveJob'}}))
-                    Add-JSMFailedJob -Name $j.Name -FailureType 'ReceiveJob'
+                    Add-JSMJobFailure -Name $j.Name -FailureType 'ReceiveJob'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 415
                     Continue nextDefinedJob
                 }
@@ -163,7 +163,7 @@ function Start-JSMNewJobCompletionProcess
                             $message = "$($j.Name): JobResults FAILED Validations ($($j.ResultsValidation.Keys -join ','))"
                             Write-Warning -Message $message
                             $NewJobFailures.add($($j | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}}))
-                            Add-JSMFailedJob -Name $j.Name -FailureType 'ResultsValidation'
+                            Add-JSMJobFailure -Name $j.Name -FailureType 'ResultsValidation'
                             Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 419
                             continue nextDefinedJob
                         }
@@ -196,7 +196,7 @@ function Start-JSMNewJobCompletionProcess
                                 Write-Warning -Message $message
                                 Write-Warning -Message $myerror
                                 $NewJobFailures.Add($($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}}))
-                                Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariablefromKey'
+                                Add-JSMJobFailure -Name $j.Name -FailureType 'SetResultsVariablefromKey'
                                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 425
                                 $ThisDefinedJobSuccessfullyCompleted = $false
                                 Continue nextDefinedJob
@@ -220,7 +220,7 @@ function Start-JSMNewJobCompletionProcess
                             Write-Warning -Message $message
                             Write-Warning -Message $myerror
                             $NewJobFailures.add($($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}}))
-                            Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariable'
+                            Add-JSMJobFailure -Name $j.Name -FailureType 'SetResultsVariable'
                             Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 423
                             Continue nextDefinedJob
                         }

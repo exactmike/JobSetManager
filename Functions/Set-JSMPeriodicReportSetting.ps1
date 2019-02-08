@@ -13,7 +13,15 @@ function Set-JSMPeriodicReportSetting
         ,
         [bool]$attachLog
         ,
-        $smtpServer
+        [parameter()]
+        [string]$SMTPServer = 'smtp.office365.com'
+        ,
+        [parameter()]
+        [ValidateSet(25,587)]
+        [int]$SMTPPort = 25
+        ,
+        [parameter()]
+        [pscredential]$SMTPCredential
         ,
         [bool]$WriteLog = $true
         ,
@@ -28,10 +36,12 @@ function Set-JSMPeriodicReportSetting
         ,
         [bool]$FirstTestTrue = $true
     )
-    $Script:JSMPeriodicReportSettings = [PSCustomObject]@{
+    $Script:JSMPeriodicReportSetting = [PSCustomObject]@{
         SendEmail = $SendEmail
         WriteLog = $WriteLog
-        SMTPServer = $smtpServer
+        SMTPServer = $SMTPServer
+        SMTPPort = $SMTPPort
+        SMTPCredential = $SMTPCredential
         Recipient = $Recipient
         Sender = $Sender
         Subject = $subject
@@ -41,5 +51,5 @@ function Set-JSMPeriodicReportSetting
         MissedIntervalTrue = $MissedIntervalTrue
         FirstTestTrue = $FirstTestTrue
     }
-    $Script:JSMPeriodicReportSettings
+    $Script:JSMPeriodicReportSetting
 }
