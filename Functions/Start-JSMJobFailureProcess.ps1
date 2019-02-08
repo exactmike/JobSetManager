@@ -1,13 +1,13 @@
-Function Start-JSMFailedJobProcess
+Function Start-JSMJobFailureProcess
 {
     [CmdletBinding()]
     param(
-        [psobject[]]$NewlyFailedJobs
+        [psobject[]]$NewJobFailure
     )
     $FatalFailure = $false
     foreach ($j in $newlyFailedJobs)
     {
-        $FailedJobs = Get-JSMFailedJob
+        $FailedJobs = Get-JSMJobFailure
         #if JobFailureRetryLimit exceeded then abort the loop
         $JobFailureRetryLimitForThisJob = [math]::Max($j.JobFailureRetryLimit,$JobFailureRetryLimit)
         if ($FailedJobs.$($j.name).FailureCount -ge $JobFailureRetryLimitForThisJob)

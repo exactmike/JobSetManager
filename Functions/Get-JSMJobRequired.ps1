@@ -1,4 +1,4 @@
-function Get-JSMRequiredJob
+function Get-JSMJobRequired
 {
     [cmdletbinding()]
     param
@@ -18,7 +18,7 @@ function Get-JSMRequiredJob
     else {
         $RequiredJobFilter = [scriptblock] {$true}
     }
-    $RequiredJobs = @($JobDefinitions | Where-Object -FilterScript $RequiredJobFilter)
+    $RequiredJobs = @($JobDefinition | Where-Object -FilterScript $RequiredJobFilter)
     if ($RequiredJobs.Count -eq 0)
     {
         $message = "Get-RequiredJob: No Required Jobs Found"

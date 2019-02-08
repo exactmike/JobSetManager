@@ -1,19 +1,19 @@
-function Get-JSMNextJob
+function Get-JSMJobNext
 {
     [cmdletbinding()]
     param
     (
         [parameter(Mandatory)]
-        [hashtable]$CompletedJob
+        [hashtable]$JobCompletion
         ,
         [parameter(Mandatory)]
-        [hashtable]$CurrentJob
+        [hashtable]$JobCurrent
         ,
         [parameter(Mandatory)]
-        [hashtable]$FailedJob
+        [hashtable]$JobFailure
         ,
         [parameter(Mandatory)]
-        [psobject[]]$RequiredJob
+        [psobject[]]$JobRequired
         ,
         [parameter()]
         [int]$JobFailureRetryLimit
@@ -23,12 +23,12 @@ function Get-JSMNextJob
         {
             $JobFailureRetryLimitForThisJob = [math]::Max($j.JobFailureRetryLimit,$JobFailureRetryLimit)
             if (
-                ($j.Name -notin $CompletedJob.Keys) -and
-                ($j.Name -notin $CurrentJob.Keys) -and
-                ($j.Name -notin $FailedJob.Keys -or $FailedJob.$($j.Name).FailureCount -lt $JobFailureRetryLimitForThisJob) -and
+                ($j.Name -notin $JobCompletion.Keys) -and
+                ($j.Name -notin $JobCurrent.Keys) -and
+                ($j.Name -notin $JobFailure.Keys -or $JobFailure.$($j.Name).FailureCount -lt $JobFailureRetryLimitForThisJob) -and
                 (
                     ($j.DependsOnJobs.count -eq 0) -or
-                    (Test-JSMJobCondition -JobConditionList $j.DependsOnJobs -ConditionValuesObject $CompletedJobs -TestFor $true)
+                    (Test-JSMJobCondition -JobConditionList $j.DependsOnJobs -ConditionValuesObject $JobCompletion -TestFor $true)
                 )
             )
             {

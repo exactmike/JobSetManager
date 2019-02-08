@@ -2,6 +2,7 @@ function Get-JSMJobSetYUMLURL
 {
     [cmdletbinding(DefaultParameterSetName='Static')]
     param(
+        [parameter(Mandatory)]
         [psobject[]]$JobSet
         ,
         [parameter(ParameterSetName = 'Progress',Mandatory)]
@@ -10,17 +11,17 @@ function Get-JSMJobSetYUMLURL
         [parameter(ParameterSetName = 'Progress',Mandatory)]
         [AllowNull()]
         [AllowEmptyCollection()]
-        $CompletedJobs
+        $JobCompletion
         ,
         [parameter(ParameterSetName = 'Progress',Mandatory)]
         [AllowNull()]
         [AllowEmptyCollection()]
-        $CurrentJobs
+        $JobCurrent
         ,
         [parameter(ParameterSetName = 'Progress',Mandatory)]
         [AllowNull()]
         [AllowEmptyCollection()]
-        $FailedJobs
+        $JobFailure
     )
     function Get-BGColor {
         param(
@@ -28,11 +29,11 @@ function Get-JSMJobSetYUMLURL
             ,
             $CurrentJobs
             ,
-            $CompletedJobs
+            $JobCompletions
             ,
             $FailedJobs
         )
-        if ($CompletedJobs.ContainsKey($JobName))
+        if ($JobCompletions.ContainsKey($JobName))
         {
             'limegreen'
         }
@@ -78,7 +79,7 @@ function Get-JSMJobSetYUMLURL
                 foreach ($job in $JobSet)
                 {
                     $JobName = $job | Select-Object -ExpandProperty Name
-                    $Color = Get-BGColor -JobName $JobName -CurrentJobs $CurrentJobs -CompletedJobs $CompletedJobs -FailedJobs $FailedJobs
+                    $Color = Get-BGColor -JobName $JobName -CurrentJobs $CurrentJobs -JobCompletions $JobCompletions -FailedJobs $FailedJobs
                     $JobYUML.$($JobName) = "[ $JobName {bg:$Color}]"
                 }
                 $(

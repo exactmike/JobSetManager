@@ -3,43 +3,43 @@ function Start-JSMPeriodicReportProcess
     [CmdletBinding()]
     param
     (
-        $PeriodicReportSettings,
-        $RequiredJob,
+        $PeriodicReportSetting,
+        $JobRequired,
         $stopwatch,
-        $CompletedJob,
-        $CurrentJob,
-        $FailedJob
+        $JobCompletion,
+        $JobCurrent,
+        $JobFailure
     )
     if ($null -ne $PeriodicReportSettings)
     {
         Write-Verbose -Message 'Periodic Report Settings is Not NULL'
         $TestStopWatchPeriodParams = @{
-            Units = $PeriodicReportSettings.Units
-            Length = $PeriodicReportSettings.Length
+            Units = $PeriodicReportSetting.Units
+            Length = $PeriodicReportSetting.Length
             Stopwatch = $stopwatch
-            MissedIntervalTrue = $PeriodicReportSettings.MissedIntervalTrue
-            FirstTestTrue = $PeriodicReportSettings.FirstTestTrue
+            MissedIntervalTrue = $PeriodicReportSetting.MissedIntervalTrue
+            FirstTestTrue = $PeriodicReportSetting.FirstTestTrue
         }
         [bool]$SendTheReport = Test-JSMStopWatchPeriod @TestStopWatchPeriodParams
         Write-Verbose -Message "SendtheReport is set to $SendTheReport"
     }
-    if ($true -eq $SendTheReport -and $PeriodicReportSettings.SendEmail)
+    if ($true -eq $SendTheReport -and $PeriodicReportSetting.SendEmail)
     {
         $body =
 @"
 $($script:JSMProcessingLoopStatus | ConvertTo-Html)
 
-$(Get-JSMJobSetYUMLURL -JobSet $RequiredJobs -CompletedJobs $CompletedJobs -CurrentJobs $CurrentJobs -FailedJobs $FailedJobs -Progress)
+$(Get-JSMJobSetYUMLURL -JobSet $JobRquired -JobCompletion $JobCompletion -JobCurrent $JobCurrent -JobFailure $JobFailure -Progress)
 "@
         $SendMailMessageParams = @{
             Body = $body
-            Subject = $PeriodicReportSettings.Subject
+            Subject = $PeriodicReportSetting.Subject
             BodyAsHTML = $true
-            To = $PeriodicReportSettings.Recipient
-            From = $PeriodicReportSettings.Sender
-            SmtpServer = $PeriodicReportSettings.SmtpServer
+            To = $PeriodicReportSetting.Recipient
+            From = $PeriodicReportSetting.Sender
+            SmtpServer = $PeriodicReportSetting.SmtpServer
         }
-        if ($PeriodicReportSettings.attachlog)
+        if ($PeriodicReportSetting.attachlog)
         {
             $SendMailMessageParams.attachments = $logpath
         }

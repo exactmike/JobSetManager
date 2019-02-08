@@ -1,20 +1,20 @@
-function Start-JSMNewlyCompletedJobProcess
+function Start-JSMNewJobCompletionProcess
 {
     [cmdletbinding()]
     param(
         [parameter(Mandatory)]
-        [hashtable]$CompletedJob
+        [hashtable]$JobCompletion
         ,
         [parameter(Mandatory)]
-        [psobject[]]$RequiredJob
+        [psobject[]]$JobRequired
         ,
         [switch]$SuppressVariableRemoval
     )
-    $CompletedRSJobs = @(Get-RSJob -State Completed | Where-Object -FilterScript {$_.Name -in $RequiredJob.Name -and $_.Name -notin $CompletedJobs.Keys})
+    $CompletedRSJobs = @(Get-RSJob -State Completed | Where-Object -FilterScript {$_.Name -in $JobRequired.Name -and $_.Name -notin $JobCompletion.Keys})
     if ($CompletedRSJobs.count -ge 1)
     {
         $skipBatchJobs = @{}
-        $PotentialNewlyCompletedJobs = @(
+        $PotentialNewJobCompletions = @(
             :nextRSJob foreach ($rsJob in $CompletedRSJobs)
             {
                 #skip examining this job if another in the same batch has already been examined in this loop
@@ -60,18 +60,18 @@ function Start-JSMNewlyCompletedJobProcess
                     else #this is a failure that needs to be raised
                     {
                         #how should we exit the loop and report what happened?
-                        #$NewlyFailedJobs += $($BatchRSJobs | Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'SplitJobCountMismatch')
+                        #$NewJobFailures += $($BatchRSJobs | Add-Member -MemberType NoteProperty -Name JobFailureType -Value 'SplitJobCountMismatch')
                     }
                 }
                 #$DefinedJob | Add-Member -MemberType NoteProperty -Name EndTime -Value (Get-Date) -Force
                 $DefinedJob
             }
         )
-        if ($PotentialNewlyCompletedJobs.Count -ge 1)
+        if ($PotentialNewJobCompletions.Count -ge 1)
         {
-            $NewlyFailedJobs = @()
-            Write-Verbose -Message "Found $($PotentialNewlyCompletedJobs.Count) Potential Newly Completed Job(s) to Process: $($PotentialNewlyCompletedJobs.Name -join ',')"
-            :nextDefinedJob foreach ($j in $PotentialNewlyCompletedJobs)
+            $NewJobFailures = @(); $NewJobFailures = {$NewJobFailures}.Invoke()
+            Write-Verbose -Message "Found $($PotentialNewJobCompletions.Count) Potential Newly Completed Job(s) to Process: $($PotentialNewJobCompletions.Name -join ',')"
+            :nextDefinedJob foreach ($j in $PotentialNewJobCompletions)
             {
                 $ThisDefinedJobSuccessfullyCompleted = $false
                 $message = "$($j.name): Get Job Engine Job(s)"
@@ -87,7 +87,7 @@ function Start-JSMNewlyCompletedJobProcess
                     $myerror = $_
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror.tostring()
-                    $NewlyFailedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'GetJob'}})
+                    $NewJobFailures.add($($job | Select-Object -Property *,@{n='FailureType';e={'GetJob'}}))
                     Add-JSMFailedJob -Name $j.Name -FailureType 'GetJob'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 403
                     continue nextDefinedJob
@@ -96,7 +96,7 @@ function Start-JSMNewlyCompletedJobProcess
                 {
                     $message = "$($j.name): Job Engine Job Count does not match JSM Job SplitJob specification."
                     Write-Warning -Message $message
-                    $NewlyFailedJobs += $($job | Select-Object -Property *,@{n='FailureType';e={'SplitJobCount'}})
+                    $NewJobFailures.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitJobCount'}}))
                     Add-JSMFailedJob -Name $j.Name -FailureType 'SplitJobCount'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 407
                     continue nextDefinedJob
@@ -138,7 +138,7 @@ function Start-JSMNewlyCompletedJobProcess
                     $myerror = $_.tostring()
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror
-                    $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'ReceiveJob'}})
+                    $NewJobFailures.Add($($j | Select-Object -Property *,@{n='FailureType';e={'ReceiveJob'}}))
                     Add-JSMFailedJob -Name $j.Name -FailureType 'ReceiveJob'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 415
                     Continue nextDefinedJob
@@ -162,7 +162,7 @@ function Start-JSMNewlyCompletedJobProcess
                         {
                             $message = "$($j.Name): JobResults FAILED Validations ($($j.ResultsValidation.Keys -join ','))"
                             Write-Warning -Message $message
-                            $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}})
+                            $NewJobFailures.add($($j | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}}))
                             Add-JSMFailedJob -Name $j.Name -FailureType 'ResultsValidation'
                             Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 419
                             continue nextDefinedJob
@@ -195,7 +195,7 @@ function Start-JSMNewlyCompletedJobProcess
                                 $myerror = $_.tostring()
                                 Write-Warning -Message $message
                                 Write-Warning -Message $myerror
-                                $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}})
+                                $NewJobFailures.Add($($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}}))
                                 Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariablefromKey'
                                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 425
                                 $ThisDefinedJobSuccessfullyCompleted = $false
@@ -219,7 +219,7 @@ function Start-JSMNewlyCompletedJobProcess
                             $myerror = $_.tostring()
                             Write-Warning -Message $message
                             Write-Warning -Message $myerror
-                            $NewlyFailedJobs += $($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}})
+                            $NewJobFailures.add($($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}}))
                             Add-JSMFailedJob -Name $j.Name -FailureType 'SetResultsVariable'
                             Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 423
                             Continue nextDefinedJob
@@ -231,7 +231,7 @@ function Start-JSMNewlyCompletedJobProcess
                     $message = "$($j.Name): Successfully Completed"
                     Write-Verbose -Message $message
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 426
-                    Add-JSMCompletedJob -Name $j.Name
+                    Add-JSMJobCompletion -Name $j.Name
                     #Run PostJobCommands
                     if ([string]::IsNullOrWhiteSpace($j.PostJobCommands) -eq $false)
                     {
@@ -281,7 +281,7 @@ function Start-JSMNewlyCompletedJobProcess
                 #remove variables JobResults,SplitData,YourSplitData . . .
             }#foreach
             Write-Verbose -Message "Finished Processing Potential Newly Completed Jobs"
-            $NewlyFailedJobs
+            $NewJobFailures
         }
     }
 }
