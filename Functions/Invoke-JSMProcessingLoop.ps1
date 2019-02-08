@@ -145,7 +145,7 @@ function Invoke-JSMProcessingLoop
         }
         else
         {   #add a check here for situation all jobs completed and skip if so
-            if ($JobCurrent.count -eq 0 -and $Job)
+            #if ($JobCurrent.count -eq 0 -and $JobPending.count -eq 0)
             [gc]::Collect()
             [gc]::WaitForPendingFinalizers()
             [gc]::Collect()
