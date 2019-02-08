@@ -100,9 +100,9 @@ function Invoke-JSMProcessingLoop
             $FatalFailure = Start-JSMJobFailureProcess -NewJobFailure $NewJobFailures
         }
         $JobCompletions = Get-JSMJobCompletion
-        $CurrentJobs = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired
+        $JobCurrent = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired
         $JobFailures = Get-JSMJobFailure
-        $PendingJobs = Get-JSMJobPending -JobRequired $JobRequired
+        $JobPending = Get-JSMJobPending -JobRequired $JobRequired
         if ($true -eq $Interactive)
         {
             $originalVerbosePreference = $VerbosePreference
@@ -110,9 +110,9 @@ function Invoke-JSMProcessingLoop
             Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "$(Get-Date)"
             Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Pending Jobs: $(($PendingJobs.Keys | sort-object) -join ',')"
+            Write-Verbose -Message "Pending Jobs: $(($JobPending.Keys | sort-object) -join ',')"
             Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Currently Running Jobs: $(($CurrentJobs.Keys | sort-object) -join ',')"
+            Write-Verbose -Message "Currently Running Jobs: $(($JobCurrent.Keys | sort-object) -join ',')"
             Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "Completed Jobs: $(($JobCompletions.Keys | sort-object) -join ',' )"
             Write-Verbose -Message "=========================================================================="
@@ -130,7 +130,7 @@ function Invoke-JSMProcessingLoop
         }
         if ($true -eq $PeriodicReport)
         {
-            Start-JSMPeriodicReportProcess -PeriodicReportSetting $PeriodicReportSetting -JobRequired $JobRequired -stopwatch $Script:Stopwatch -JobCompletion $JobCompletions -JobFailure $JobFailures -JobCurrent $CurrentJobs
+            Start-JSMPeriodicReportProcess -PeriodicReportSetting $PeriodicReportSetting -JobRequired $JobRequired -stopwatch $Script:Stopwatch -JobCompletion $JobCompletions -JobFailure $JobFailures -JobCurrent $JobCurrent
         }
         if ($LoopOnce -eq $true)
         {
@@ -145,6 +145,10 @@ function Invoke-JSMProcessingLoop
         }
         else
         {   #add a check here for situation all jobs completed and skip if so
+            if ($JobCurrent.count -eq 0 -and $Job)
+            [gc]::Collect()
+            [gc]::WaitForPendingFinalizers()
+            [gc]::Collect()
             if ($Interactive) {$VerbosePreference = 'Continue'}
             Write-Verbose -message "Safe to interrupt loop for next $SleepSecondsBetweenJobCheck seconds"
             Start-Sleep -Seconds $SleepSecondsBetweenJobCheck

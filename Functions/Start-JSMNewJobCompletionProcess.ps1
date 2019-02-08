@@ -275,8 +275,6 @@ function Start-JSMNewJobCompletionProcess
                         Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 435
                     }
                     Add-JSMProcessingStatusEntry -Job $j.name -Message "Job Completed Successfully" -Status $true -EventID 498
-                    [gc]::Collect()
-                    Start-Sleep -Seconds 5
                 }#if $thisDefinedJobSuccessfullyCompleted
                 #remove variables JobResults,SplitData,YourSplitData . . .
             }#foreach

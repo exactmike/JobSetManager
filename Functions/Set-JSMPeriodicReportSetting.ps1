@@ -5,13 +5,11 @@ function Set-JSMPeriodicReportSetting
     (
         [bool]$SendEmail = $false
         ,
-        $Recipient
+        $To
         ,
-        $Sender
+        $From
         ,
-        $subject
-        ,
-        [bool]$attachLog
+        $Subject
         ,
         [parameter()]
         [string]$SMTPServer = 'smtp.office365.com'
@@ -23,14 +21,12 @@ function Set-JSMPeriodicReportSetting
         [parameter()]
         [pscredential]$SMTPCredential
         ,
-        [bool]$WriteLog = $true
-        ,
         [parameter()]
         [validateset('Milliseconds','Seconds','Minutes','Hours','Days')]
-        $units = 'Minutes'
+        $Units = 'Minutes'
         ,
         [parameter()]
-        $length
+        $Length
         ,
         [bool]$MissedIntervalTrue = $true
         ,
@@ -42,12 +38,11 @@ function Set-JSMPeriodicReportSetting
         SMTPServer = $SMTPServer
         SMTPPort = $SMTPPort
         SMTPCredential = $SMTPCredential
-        Recipient = $Recipient
-        Sender = $Sender
-        Subject = $subject
-        attachlog = $attachLog
-        Units = $units
-        Length = $length
+        To = $To
+        From = $From
+        Subject = $Subject
+        Units = $Units
+        Length = $Length
         MissedIntervalTrue = $MissedIntervalTrue
         FirstTestTrue = $FirstTestTrue
     }

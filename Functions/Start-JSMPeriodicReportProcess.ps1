@@ -5,12 +5,12 @@ function Start-JSMPeriodicReportProcess
     (
         $PeriodicReportSetting,
         $JobRequired,
-        $stopwatch,
+        $Stopwatch,
         $JobCompletion,
         $JobCurrent,
         $JobFailure
     )
-    if ($null -ne $PeriodicReportSettings)
+    if ($null -ne $PeriodicReportSetting)
     {
         Write-Verbose -Message 'Periodic Report Settings is Not NULL'
         $TestStopWatchPeriodParams = @{
@@ -29,19 +29,20 @@ function Start-JSMPeriodicReportProcess
 @"
 $($script:JSMProcessingLoopStatus | ConvertTo-Html)
 
-$(Get-JSMJobSetYUMLURL -JobSet $JobRquired -JobCompletion $JobCompletion -JobCurrent $JobCurrent -JobFailure $JobFailure -Progress)
+$(Get-JSMJobSetYUMLURL -JobSet $JobRequired -JobCompletion $JobCompletion -JobCurrent $JobCurrent -JobFailure $JobFailure -Progress)
 "@
         $SendMailMessageParams = @{
             Body = $body
             Subject = $PeriodicReportSetting.Subject
             BodyAsHTML = $true
-            To = $PeriodicReportSetting.Recipient
-            From = $PeriodicReportSetting.Sender
+            To = $PeriodicReportSetting.To
+            From = $PeriodicReportSetting.From
             SmtpServer = $PeriodicReportSetting.SmtpServer
+            Port = $PeriodicReportSetting.SMTPPort
         }
-        if ($PeriodicReportSetting.attachlog)
+        if ($null -ne $PeriodicReportSetting.SMTPCredential)
         {
-            $SendMailMessageParams.attachments = $logpath
+            $SendMailMessageParams.Credential = $PeriodicReportSetting.SMTPCredential
         }
         Send-MailMessage @SendMailMessageParams
     }
