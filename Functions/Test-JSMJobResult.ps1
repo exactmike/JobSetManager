@@ -65,6 +65,14 @@ function Test-JSMJobResult
                         Write-Verbose -Message $message
                         $Result
                     }
+                    else
+                    {
+                        $message = "$($DefinedJob.Name): FAILED Validation $_ ($($ResultsValidation.$_)). Skipping other validations."
+                        Write-Warning -Message $message
+                        $Result
+                        break
+                    }
+
                 }
                 'ValidateType'
                 {
