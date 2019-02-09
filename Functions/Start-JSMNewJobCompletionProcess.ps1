@@ -73,6 +73,7 @@ function Start-JSMNewJobCompletionProcess
             Write-Verbose -Message "Found $($PotentialNewJobCompletions.Count) Potential Newly Completed Job(s) to Process: $($PotentialNewJobCompletions.Name -join ',')"
             :nextDefinedJob foreach ($j in $PotentialNewJobCompletions)
             {
+                $ThisAttempt = Get-JSMJobAttempt -JobName $j.name -Active $true -StopType 'None' |  Select-Object -ExpandProperty Attempt
                 $ThisDefinedJobSuccessfullyCompleted = $false
                 $message = "$($j.name): Get Job Engine Job(s)"
                 try
@@ -90,6 +91,7 @@ function Start-JSMNewJobCompletionProcess
                     $NewJobFailures.add($($job | Select-Object -Property *,@{n='FailureType';e={'GetJob'}}))
                     Add-JSMJobFailure -Name $j.Name -FailureType 'GetJob'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 403
+                    Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
                     continue nextDefinedJob
                 }
                 if ($j.JobSplit -gt 1 -and ($RSJobs.Count -eq $j.JobSplit) -eq $false)
@@ -99,6 +101,7 @@ function Start-JSMNewJobCompletionProcess
                     $NewJobFailures.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitJobCount'}}))
                     Add-JSMJobFailure -Name $j.Name -FailureType 'SplitJobCount'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 407
+                    Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
                     continue nextDefinedJob
                 }
                 else
@@ -141,6 +144,7 @@ function Start-JSMNewJobCompletionProcess
                     $NewJobFailures.Add($($j | Select-Object -Property *,@{n='FailureType';e={'ReceiveJob'}}))
                     Add-JSMJobFailure -Name $j.Name -FailureType 'ReceiveJob'
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 415
+                    Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
                     Continue nextDefinedJob
                 }
                 #Validate the JobResultsVariable
@@ -165,6 +169,7 @@ function Start-JSMNewJobCompletionProcess
                             $NewJobFailures.add($($j | Select-Object -Property *,@{n='FailureType';e={'ResultsValidation'}}))
                             Add-JSMJobFailure -Name $j.Name -FailureType 'ResultsValidation'
                             Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 419
+                            Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
                             continue nextDefinedJob
                         }
                     }
@@ -198,6 +203,7 @@ function Start-JSMNewJobCompletionProcess
                                 $NewJobFailures.Add($($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariablefromKey'}}))
                                 Add-JSMJobFailure -Name $j.Name -FailureType 'SetResultsVariablefromKey'
                                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 425
+                                Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
                                 $ThisDefinedJobSuccessfullyCompleted = $false
                                 Continue nextDefinedJob
                             }
@@ -222,6 +228,7 @@ function Start-JSMNewJobCompletionProcess
                             $NewJobFailures.add($($j | Select-Object -Property *,@{n='FailureType';e={'SetResultsVariable'}}))
                             Add-JSMJobFailure -Name $j.Name -FailureType 'SetResultsVariable'
                             Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 423
+                            Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
                             Continue nextDefinedJob
                         }
                     }
@@ -232,6 +239,7 @@ function Start-JSMNewJobCompletionProcess
                     Write-Verbose -Message $message
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 426
                     Add-JSMJobCompletion -Name $j.Name
+                    Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType 'Complete'
                     #Run PostJobCommands
                     if ([string]::IsNullOrWhiteSpace($j.PostJobCommands) -eq $false)
                     {
