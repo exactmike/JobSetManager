@@ -11,6 +11,7 @@ Function Start-JSMJob
         Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 302
     }
     $FailedStartJobs = @(); $FailedStartJobs = {$FailedStartJobs}.invoke()
+    $SuccessStartJobs = @(); $SuccessStartJobs = {$SuccessStartJobs}.invoke()
     #Start the jobs
     :nextJobToStart foreach ($j in $Job)
     {
@@ -140,13 +141,14 @@ Function Start-JSMJob
                     $myerror = $_.tostring()
                     Write-Warning -Message $message
                     Write-Warning -Message $myerror
-                    $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'JobStartWithSplitData'}}))
+                    $FailedStartJobs.add($($j | Select-Object -Property *,@{n='FailureType';e={'JobStartWithSplitData'}}))
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
                     Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
                     Add-JSMFailedJob -Name $j.Name -FailureType 'JobStartWithSplitData'
                     continue nextJobToStart
                 }
             }
+            $SuccessStartJobs.add($j)
         }
         #otherwise just start one job
         else
@@ -158,6 +160,7 @@ Function Start-JSMJob
                 Start-RSJob @StartRSJobParams | Out-Null
                 Write-Verbose -Message $message
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
+                $SuccessStartJobs.add($j)
             }
             catch
             {
@@ -177,8 +180,9 @@ Function Start-JSMJob
     {
         $message = "$($FailedStartJobs.count) Job(s) Failed to Start"
         Write-Verbose -message $message
-        $FailedStartJobs
     }
     $message = "Finished Start-JSMJob"
     Write-Verbose -message $message
+    $SuccessStartJobs
+    $FailedStartJobs
 }

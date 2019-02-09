@@ -7,6 +7,9 @@ function Add-JSMJobFailure
         ,
         [parameter(Mandatory)]
         [string]$FailureType
+        ,
+        [parameter(Mandatory)]
+        [psobject]$Attempt
     )
     if ($true -ne $(Test-path -Path variable:script:JobFailures))
     {

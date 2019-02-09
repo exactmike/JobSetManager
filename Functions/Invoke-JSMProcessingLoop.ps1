@@ -76,17 +76,21 @@ function Invoke-JSMProcessingLoop
         $JobCurrent = Get-JSMJobCurrent -JobRequired $JobRequired -JobCompletion $JobCompletions
         #Check for jobs that meet their start criteria
         $JobsToStart = @(Get-JSMJobNext -JobCompletion $JobCompletions -JobCurrent $JobCurrent -JobRequired $JobRequired -JobFailure $JobFailures -JobFailureRetryLimit $JobFailureRetryLimit)
+        $StartJobSuccesses,$StartJobFailures  = $null
         if ($JobsToStart.Count -ge 1)
         {
             $message = "Found $($JobsToStart.Count) Jobs To Start. Submitting to Start-JSMJob."
             Write-Verbose -message $message
-            $StartJobFailures = @(Start-JSMJob -Job $JobsToStart)
-        }#if
+            $StartJobSuccesses,$StartJobFailures = @(Start-JSMJob -Job $JobsToStart)
+        }#end if
+        if ($null -eq $StartJobSuccesses)
+        {$StartJobSuccesses = @()}
         #Check for newly completed jobs that may need to be received and validated and for newly failed jobs for fail processing
         $SNCJPParams = @{
             JobCompletion = $JobCompletions
             JobRequired = $JobRequired
         }
+        $NewJobFailures = $null
         if ($true -eq $SuppressVariableRemoval) {$SNCJPParams.SuppressVariableRemoval = $true}
         $NewJobFailures = Start-JSMNewJobCompletionProcess @SNCJPParams
         if ($null -ne $StartJobFailures -and $StartJobFailures.count -ge 1)
@@ -100,9 +104,9 @@ function Invoke-JSMProcessingLoop
             Write-Verbose -message $message
             $FatalFailure = Start-JSMJobFailureProcess -NewJobFailure $NewJobFailures
         }
-        $JobCompletions = Get-JSMJobCompletion
+        #$JobCompletions = Get-JSMJobCompletion
         $JobCurrent = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired
-        $JobFailures = Get-JSMJobFailure
+        #$JobFailures = Get-JSMJobFailure
         $JobPending = Get-JSMJobPending -JobRequired $JobRequired
         if ($true -eq $Interactive)
         {
@@ -112,6 +116,8 @@ function Invoke-JSMProcessingLoop
             Write-Verbose -Message "$(Get-Date)"
             Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "Pending Jobs: $(($JobPending.Keys | sort-object) -join ',')"
+            Write-Verbose -Message "=========================================================================="
+            Write-Verbose -Message "Started Jobs: $(($StartJobSuccesses.Name | sort-object) -join ',')"
             Write-Verbose -Message "=========================================================================="
             Write-Verbose -Message "Currently Running Jobs: $(($JobCurrent.Keys | sort-object) -join ',')"
             Write-Verbose -Message "=========================================================================="
