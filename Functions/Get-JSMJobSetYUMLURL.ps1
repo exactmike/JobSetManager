@@ -80,7 +80,7 @@ function Get-JSMJobSetYUMLURL
                 {
                     $JobName = $job | Select-Object -ExpandProperty Name
                     $Color = Get-BGColor -JobName $JobName -JobCurrent $JobCurrent -JobCompletion $JobCompletion -JobFailure $JobFailure
-                    $JobYUML.$($JobName) = "[ $JobName {bg:$Color}]"
+                    $JobYUML.$($JobName) = "[$JobName {bg:$Color}]"
                 }
                 $(
                     foreach ($job in $JobSet)
@@ -97,6 +97,6 @@ function Get-JSMJobSetYUMLURL
             }
         }
     )
-    #$string
-    "https://yuml.me/diagram/plain;dir:RL/class/" + $([uri]::EscapeDataString($string)) + ".jpg"
+    $string
+    #"https://yuml.me/diagram/plain;dir:RL/class/" + $([uri]::EscapeDataString($string)) + ".jpg"
 }
