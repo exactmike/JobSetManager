@@ -104,7 +104,7 @@ function Invoke-JSMProcessingLoop
         {
             $message = "Found $($NewJobFailures.Count) New Job Failure(s). Submitting to Start-JSMJobFailureProcess."
             Write-Verbose -message $message
-            $FatalFailure = Start-JSMJobFailureProcess -NewJobFailure $NewJobFailures
+            $FatalFailure = Start-JSMJobFailureProcess -NewJobFailure $NewJobFailures -JobFailureRetryLimit $JobFailureRetryLimit
         }
         #$JobCompletions = Get-JSMJobCompletion
         $JobCurrent = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired

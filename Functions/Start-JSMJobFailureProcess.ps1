@@ -3,6 +3,8 @@ Function Start-JSMJobFailureProcess
     [CmdletBinding()]
     param(
         [psobject[]]$NewJobFailure
+        ,
+        $JobFailureRetryLimit
     )
     $FatalFailure = $false
     foreach ($j in $NewJobFailure)
