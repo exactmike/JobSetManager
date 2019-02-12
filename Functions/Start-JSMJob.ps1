@@ -183,6 +183,9 @@ Function Start-JSMJob
     }
     $message = "Finished Start-JSMJob"
     Write-Verbose -message $message
-    $SuccessStartJobs
-    $FailedStartJobs
+
+    @{
+        SuccessStartJobs = $SuccessStartJobs
+        FailedStartJobs = $FailedStartJobs
+    }
 }

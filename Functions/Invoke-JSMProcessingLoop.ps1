@@ -81,7 +81,9 @@ function Invoke-JSMProcessingLoop
         {
             $message = "Found $($JobsToStart.Count) Jobs To Start. Submitting to Start-JSMJob."
             Write-Verbose -message $message
-            $StartJobSuccesses,$StartJobFailures = @(Start-JSMJob -Job $JobsToStart)
+            $StartResult = Start-JSMJob -Job $JobsToStart
+            $StartJobSuccesses = $StartResult.SuccessStartJobs
+            $StartJobFailures = $StartResult.FailedStartJobs
         }#end if
         if ($null -eq $StartJobSuccesses)
         {$StartJobSuccesses = @()}
