@@ -18,6 +18,10 @@ function Set-JSMPeriodicReportSetting
         [ValidateSet(25,587)]
         [int]$SMTPPort = 25
         ,
+        #Specify whether to use SSL/TLS when sending the SMTP message.  Default is $True.
+        [Parameter()]
+        [bool]$SMTPUseSSL = $true
+        ,
         [parameter()]
         [pscredential]$SMTPCredential
         ,
@@ -37,6 +41,7 @@ function Set-JSMPeriodicReportSetting
         WriteLog = $WriteLog
         SMTPServer = $SMTPServer
         SMTPPort = $SMTPPort
+        SMTPUseSSL = $SMTPUseSSL
         SMTPCredential = $SMTPCredential
         To = $To
         From = $From
