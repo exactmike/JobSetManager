@@ -18,6 +18,7 @@ Function Start-JSMJob
         $PreviousAttempts = @(Get-JSMJobAttempt -JobName $j.name)
         $ThisAttempt = $($($PreviousAttempts.Attempt | Measure-Object -Maximum).Maximum + 1)
         Add-JSMJobAttempt -JobName $j.name -JobType RSJob -Attempt $ThisAttempt
+        $Attempt = Get-JSMJobAttempt -JobName $j.name -Attempt $ThisAttempt -Active $true
         #Run the PreJobCommands
         if ([string]::IsNullOrWhiteSpace($j.PreJobCommands) -eq $false)
         {
@@ -43,7 +44,7 @@ Function Start-JSMJob
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'PreJobCommands'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 307
                 Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMFailedJob -Name $j.Name -FailureType 'PreJobCommands'
+                Add-JSMJobFailure -Name $j.Name -FailureType 'PreJobCommands' -Attempt $Attempt
                 continue nextJobToStart
             }
         }
@@ -76,7 +77,7 @@ Function Start-JSMJob
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'ProcessArgumentList'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message1 -Status $false -EventID 311
                 Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMFailedJob -Name $j.Name -FailureType 'ProcessArgumentList'
+                Add-JSMJobFailure -Name $j.Name -FailureType 'ProcessArgumentList' -Attempt $Attempt
                 continue nextJobToStart
             }
         }
@@ -101,7 +102,7 @@ Function Start-JSMJob
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitDataSourceRetrieval'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
                 Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMFailedJob -Name $j.Name -FailureType 'SplitDataSourceRetrieval'
+                Add-JSMJobFailure -Name $j.Name -FailureType 'SplitDataSourceRetrieval' -Attempt $Attempt
                 continue nextJobToStart
             }
             try
@@ -120,7 +121,7 @@ Function Start-JSMJob
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitDataCalculation'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
                 Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMFailedJob -Name $j.Name -FailureType 'SplitDataCalculation'
+                Add-JSMJobFailure -Name $j.Name -FailureType 'SplitDataCalculation' -Attempt $Attempt
                 continue nextJobToStart
             }
             $splitjobcount = 0
@@ -144,7 +145,7 @@ Function Start-JSMJob
                     $FailedStartJobs.add($($j | Select-Object -Property *,@{n='FailureType';e={'JobStartWithSplitData'}}))
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
                     Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                    Add-JSMFailedJob -Name $j.Name -FailureType 'JobStartWithSplitData'
+                    Add-JSMJobFailure -Name $j.Name -FailureType 'JobStartWithSplitData' -Attempt $Attempt
                     continue nextJobToStart
                 }
             }
@@ -170,7 +171,7 @@ Function Start-JSMJob
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'JobEngineJobStart'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
                 Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMFailedJob -Name $j.Name -FailureType 'JobEngineJobStart'
+                Add-JSMJobFailure -Name $j.Name -FailureType 'JobEngineJobStart' -Attempt $Attempt
                 continue nextJobToStart
             }
         }

@@ -72,7 +72,7 @@ Description = 'add on module for poshrsjob to manage job hierarchies'
 FunctionsToExport = @(
     'Add-JSMJobAttempt'
     'Add-JSMJobCompletion'
-    'Add-JSMFailedJob'
+    'Add-JSMJobFailure'
     'Add-JSMProcessingStatusEntry'
     'Clear-JSMJobAttempt'
     'Clear-JSMJobCompletion'
