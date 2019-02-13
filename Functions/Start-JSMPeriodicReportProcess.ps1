@@ -3,13 +3,46 @@ function Start-JSMPeriodicReportProcess
     [CmdletBinding()]
     param
     (
+        [parameter()]
+        [AllowNull()]
         $PeriodicReportSetting,
         $JobRequired,
         $Stopwatch,
         $JobCompletion,
+        $StartJobSuccess,
         $JobCurrent,
-        $JobFailure
+        $JobPending,
+        $JobFailure,
+        $Interactive,
+        $FatalFailure
     )
+    if ($true -eq $Interactive)
+    {
+        $originalVerbosePreference = $VerbosePreference
+        $VerbosePreference = 'Continue'
+        Write-Verbose -Message "=========================================================================="
+        Write-Verbose -Message "$(Get-Date)"
+        Write-Verbose -Message "=========================================================================="
+        Write-Verbose -Message "Pending Jobs: $(($JobPending.Keys | sort-object) -join ' | | ')"
+        Write-Verbose -Message "=========================================================================="
+        Write-Verbose -Message "Started Jobs: $(($StartJobSuccess.Name | sort-object) -join ' | | ')"
+        Write-Verbose -Message "=========================================================================="
+        Write-Verbose -Message "Currently Running Jobs: $(($JobCurrent.Keys | sort-object) -join ' | | ')"
+        Write-Verbose -Message "=========================================================================="
+        Write-Verbose -Message "Completed Jobs: $(($JobCompletion.Keys | sort-object) -join ' | | ' )"
+        Write-Verbose -Message "=========================================================================="
+        if ($JobFailure.Keys.Count -ge 1)
+        {
+            Write-Verbose -Message "Jobs With Failed Attempts: $(($Script:JobFailure.Keys | sort-object) -join ' | | ' )"
+            Write-Verbose -Message "=========================================================================="
+        }
+        if ($true -eq $FatalFailure)
+        {
+            Write-Verbose -Message "A Fatal Job Failure Has Occurred"
+            Write-Verbose -Message "=========================================================================="
+        }
+        $VerbosePreference = $originalVerbosePreference
+    }
     if ($null -ne $PeriodicReportSetting)
     {
         Write-Verbose -Message 'Periodic Report Settings is Not NULL'

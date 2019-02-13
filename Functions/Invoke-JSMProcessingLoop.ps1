@@ -110,36 +110,21 @@ function Invoke-JSMProcessingLoop
         $JobCurrent = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired
         #$JobFailures = Get-JSMJobFailure
         $JobPending = Get-JSMJobPending -JobRequired $JobRequired
-        if ($true -eq $Interactive)
+        if ($true -eq $PeriodicReport -or $true -eq $Interactive)
         {
-            $originalVerbosePreference = $VerbosePreference
-            $VerbosePreference = 'Continue'
-            Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "$(Get-Date)"
-            Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Pending Jobs: $(($JobPending.Keys | sort-object) -join ',')"
-            Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Started Jobs: $(($StartJobSuccesses.Name | sort-object) -join ',')"
-            Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Currently Running Jobs: $(($JobCurrent.Keys | sort-object) -join ',')"
-            Write-Verbose -Message "=========================================================================="
-            Write-Verbose -Message "Completed Jobs: $(($JobCompletions.Keys | sort-object) -join ',' )"
-            Write-Verbose -Message "=========================================================================="
-            if ($JobFailures.Keys.Count -ge 1)
-            {
-                Write-Verbose -Message "Jobs With Failed Attempts: $(($Script:JobFailures.Keys | sort-object) -join ',' )"
-                Write-Verbose -Message "=========================================================================="
+            $startJSMPeriodicReportProcessSplat = @{
+                PeriodicReportSetting = $PeriodicReportSetting
+                JobRequired = $JobRequired
+                Stopwatch = $Script:Stopwatch
+                StartJobSuccess = $StartJobSuccesses
+                JobFailure = $JobFailures
+                Interactive = $Interactive
+                JobCompletion = $JobCompletions
+                FatalFailure = $FatalFailure
+                JobCurrent = $JobCurrent
+                JobPending = $JobPending
             }
-            if ($true -eq $FatalFailure)
-            {
-                Write-Verbose -Message "A Fatal Job Failure Has Occurred"
-                Write-Verbose -Message "=========================================================================="
-            }
-            $VerbosePreference = $originalVerbosePreference
-        }
-        if ($true -eq $PeriodicReport)
-        {
-            Start-JSMPeriodicReportProcess -PeriodicReportSetting $PeriodicReportSetting -JobRequired $JobRequired -stopwatch $Script:Stopwatch -JobCompletion $JobCompletions -JobFailure $JobFailures -JobCurrent $JobCurrent
+            Start-JSMPeriodicReportProcess @startJSMPeriodicReportProcessSplat
         }
         if ($LoopOnce -eq $true)
         {
