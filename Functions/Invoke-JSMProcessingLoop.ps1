@@ -94,7 +94,7 @@ function Invoke-JSMProcessingLoop
         }
         $NewJobFailures = $null
         if ($true -eq $SuppressVariableRemoval) {$SNCJPParams.SuppressVariableRemoval = $true}
-        $NewJobFailures = Start-JSMNewJobCompletionProcess @SNCJPParams
+        $NewJobFailures = @(Start-JSMNewJobCompletionProcess @SNCJPParams)
         if ($null -ne $StartJobFailures -and $StartJobFailures.count -ge 1)
         {
             $NewJobFailures += $StartJobFailures
@@ -154,14 +154,19 @@ function Invoke-JSMProcessingLoop
         }
         else
         {   #add a check here for situation all jobs completed and skip if so
-            #if ($JobCurrent.count -eq 0 -and $JobPending.count -eq 0)
-            [gc]::Collect()
-            [gc]::WaitForPendingFinalizers()
-            [gc]::Collect()
-            if ($Interactive) {$VerbosePreference = 'Continue'}
-            Write-Verbose -message "Safe to interrupt loop for next $SleepSecondsBetweenJobCheck seconds"
-            Start-Sleep -Seconds $SleepSecondsBetweenJobCheck
-            if ($Interactive) {$VerbosePreference = $originalVerbosePreference}
+            if ($JobCurrent.count -eq 0 -and $JobPending.count -eq 0)
+            {
+                Write-Verbose -message "Job Processing Complete"
+            }
+            else {
+                [gc]::Collect()
+                [gc]::WaitForPendingFinalizers()
+                [gc]::Collect()
+                if ($Interactive) {$VerbosePreference = 'Continue'}
+                Write-Verbose -message "Safe to interrupt Job Processing for the next $SleepSecondsBetweenJobCheck seconds"
+                Start-Sleep -Seconds $SleepSecondsBetweenJobCheck
+                if ($Interactive) {$VerbosePreference = $originalVerbosePreference}
+            }
         }
     }
     Until

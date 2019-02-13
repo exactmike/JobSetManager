@@ -16,8 +16,11 @@ function Set-JSMJobAttempt
     $JobAttempt = @(Get-JSMJobAttempt -JobName $JobName -Attempt $Attempt)
     If ($null -ne $JobAttempt -and $JobAttempt.Count -eq 1)
     {
-        $JobAttempt[0].Stop = Get-Date
-        $JobAttempt[0].StopType = $StopType
-        $JobAttempt[0].Active = $false
+        $JobAttemptToSet = $JobAttempt[0]
+        #$index = $script:JobAttempts.IndexOf($JobAttemptToSet)
+        $JobAttemptToSet.Stop = Get-Date
+        $JobAttemptToSet.StopType = $StopType
+        $JobAttemptToSet.Active = $false
+        #$script:JobAttempts.Set($index,$JobAttemptToSet)
     }
 }

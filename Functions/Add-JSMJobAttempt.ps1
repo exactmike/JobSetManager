@@ -23,4 +23,5 @@ function Add-JSMJobAttempt
         StopType = 'None'
     }
     $script:JobAttempts.add($JobAttempt)
+    $JobAttempt
 }

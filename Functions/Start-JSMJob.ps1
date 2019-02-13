@@ -16,9 +16,9 @@ Function Start-JSMJob
     :nextJobToStart foreach ($j in $Job)
     {
         $PreviousAttempts = @(Get-JSMJobAttempt -JobName $j.name)
-        $ThisAttempt = $($($PreviousAttempts.Attempt | Measure-Object -Maximum).Maximum + 1)
-        Add-JSMJobAttempt -JobName $j.name -JobType RSJob -Attempt $ThisAttempt
-        $Attempt = Get-JSMJobAttempt -JobName $j.name -Attempt $ThisAttempt -Active $true
+        $ThisAttemptNo = $($PreviousAttempts.Attempt | Sort-Object -Descending | Select-Object -First 1 -Unique) + 1
+        Write-Verbose -Message "$($j.name) Starting Attempt $ThisAttemptNo"
+        $ThisAttempt = Add-JSMJobAttempt -JobName $j.name -JobType RSJob -Attempt $ThisAttemptNo
         #Run the PreJobCommands
         if ([string]::IsNullOrWhiteSpace($j.PreJobCommands) -eq $false)
         {
@@ -43,8 +43,8 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'PreJobCommands'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 307
-                Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMJobFailure -Name $j.Name -FailureType 'PreJobCommands' -Attempt $Attempt
+                Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
+                Add-JSMJobFailure -Name $j.Name -FailureType 'PreJobCommands' -Attempt $ThisAttempt
                 continue nextJobToStart
             }
         }
@@ -76,8 +76,8 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'ProcessArgumentList'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message1 -Status $false -EventID 311
-                Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMJobFailure -Name $j.Name -FailureType 'ProcessArgumentList' -Attempt $Attempt
+                Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
+                Add-JSMJobFailure -Name $j.Name -FailureType 'ProcessArgumentList' -Attempt $ThisAttempt
                 continue nextJobToStart
             }
         }
@@ -101,8 +101,8 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitDataSourceRetrieval'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
-                Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMJobFailure -Name $j.Name -FailureType 'SplitDataSourceRetrieval' -Attempt $Attempt
+                Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
+                Add-JSMJobFailure -Name $j.Name -FailureType 'SplitDataSourceRetrieval' -Attempt $ThisAttempt
                 continue nextJobToStart
             }
             try
@@ -120,8 +120,8 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'SplitDataCalculation'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 315
-                Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMJobFailure -Name $j.Name -FailureType 'SplitDataCalculation' -Attempt $Attempt
+                Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
+                Add-JSMJobFailure -Name $j.Name -FailureType 'SplitDataCalculation' -Attempt $ThisAttempt
                 continue nextJobToStart
             }
             $splitjobcount = 0
@@ -144,8 +144,8 @@ Function Start-JSMJob
                     Write-Warning -Message $myerror
                     $FailedStartJobs.add($($j | Select-Object -Property *,@{n='FailureType';e={'JobStartWithSplitData'}}))
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
-                    Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                    Add-JSMJobFailure -Name $j.Name -FailureType 'JobStartWithSplitData' -Attempt $Attempt
+                    Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
+                    Add-JSMJobFailure -Name $j.Name -FailureType 'JobStartWithSplitData' -Attempt $ThisAttempt
                     continue nextJobToStart
                 }
             }
@@ -170,8 +170,8 @@ Function Start-JSMJob
                 Write-Warning -Message $myerror
                 $FailedStartJobs.add($($job | Select-Object -Property *,@{n='FailureType';e={'JobEngineJobStart'}}))
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
-                Set-JSMJobAttempt -Attempt $ThisAttempt -JobName $j.name -StopType Fail
-                Add-JSMJobFailure -Name $j.Name -FailureType 'JobEngineJobStart' -Attempt $Attempt
+                Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
+                Add-JSMJobFailure -Name $j.Name -FailureType 'JobEngineJobStart' -Attempt $ThisAttempt
                 continue nextJobToStart
             }
         }

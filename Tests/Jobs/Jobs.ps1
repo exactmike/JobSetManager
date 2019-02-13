@@ -54,7 +54,7 @@
     }
     StartRSJobParams = @{
         ScriptBlock = {
-            $using:TestJob1Items | Measure-object -property ItemID -Maximum -Minimum -Average -Sum
+            $using:TestJob1Items | Measure-object -property ItemID -Maximum -Minimum -Average -Sum -blat
         }
     }
     DependsOnJobs = @('TestJob1')

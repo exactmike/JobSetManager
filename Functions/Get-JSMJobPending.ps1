@@ -9,8 +9,8 @@ function Get-JSMJobPending
     $failedJobs = Get-JSMJobFailure
     $Pending = $JobRequired | Where-object {
         $_.Name -notin $jobCompletions.Keys -and
-        $_.Name -notin $currentJobs.Name -and
-        $_.Name -notin $failedJobs.Keys
+        $_.Name -notin $currentJobs.Name #-and
+        #$_.Name -notin $failedJobs.Keys
     }
     $pendingJobs = @{}
     foreach ($p in $Pending) {$pendingJobs.$($p.name) = $true}
