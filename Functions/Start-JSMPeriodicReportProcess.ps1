@@ -61,9 +61,15 @@ function Start-JSMPeriodicReportProcess
         $body =
 @"
 $($script:JSMProcessingLoopStatus | ConvertTo-Html)
-
-$(Get-JSMJobSetYUMLURL -JobSet $JobRequired -JobCompletion $JobCompletion -JobCurrent $JobCurrent -JobFailure $JobFailure -Progress)
 "@
+        $getJSMJobSetDiagramSplat = @{
+            JobFailure = $JobFailure
+            JobSet = $JobRequired
+            JobCompletion = $JobCompletion
+            JobCurrent = $JobCurrent
+            Progress = $true
+        }
+        $attachment = Get-JSMJobSetDiagram @getJSMJobSetDiagramSplat
         $SendMailMessageParams = @{
             Body = $body
             Subject = $PeriodicReportSetting.Subject
@@ -72,6 +78,7 @@ $(Get-JSMJobSetYUMLURL -JobSet $JobRequired -JobCompletion $JobCompletion -JobCu
             From = $PeriodicReportSetting.From
             SmtpServer = $PeriodicReportSetting.SmtpServer
             Port = $PeriodicReportSetting.SMTPPort
+            Attachments = $attachment.fullname
         }
         if ($null -ne $PeriodicReportSetting.SMTPCredential)
         {
