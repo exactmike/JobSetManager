@@ -17,8 +17,6 @@ function Invoke-JSMProcessingLoop
         ,
         [switch]$Interactive
         ,
-        [switch]$RetainJobFailures
-        ,
         [switch]$RestartStopwatch
         ,
         [switch]$LoopOnce
