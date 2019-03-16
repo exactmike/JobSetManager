@@ -1,14 +1,19 @@
 function Initialize-TrackingVariable
 {
+    if ($true -ne (Test-Path -Path variable:Script:JobRequired))
+    {
+      $Script:JobRequired = @()
+      $Script:JobRequired = {$Script:JobRequired}.Invoke()
+    }
     if ($true -ne (Test-Path variable:Script:JobAttempts))
     {
-      $script:JobAttempts = @()
-      $script:JobAttempts = {$script:JobAttempts}.Invoke()
+      $Script:JobAttempts = @()
+      $Script:JobAttempts = {$Script:JobAttempts}.Invoke()
     }
-    if ($true -ne (Test-ExistsJSMProcessingStatus))
+    if ($true -ne (Test-Path variable:Script:JSMProcessingLoopStatus))
     {
-      $script:JSMProcessingLoopStatus = @(); $script:JSMProcessingLoopStatus = {$script:JSMProcessingLoopStatus}.Invoke()
-      [int32]$script:JSMProcessingStatusEntryID = 0
+      $Script:JSMProcessingLoopStatus = @();
+      $Script:JSMProcessingLoopStatus = {$Script:JSMProcessingLoopStatus}.Invoke()
     }
     if ($true -ne (Test-Path variable:Script:JobCompletions))
     {
@@ -16,6 +21,10 @@ function Initialize-TrackingVariable
     }
     if ($true -ne (Test-Path variable:Script:JobFailures))
     {
-      $script:JobFailures = @{}
+      $Script:JobFailures = @{}
+    }
+    if ($true -ne (Test-Path variable:Script:JSMProcessingStatusEntryID))
+    {
+      [int32]$script:JSMProcessingStatusEntryID = 0
     }
 }
