@@ -3,7 +3,7 @@
     PreJobCommands = [ScriptBlock]{
         $null = Get-Command Get-Command -ErrorAction Stop
     }
-    StartRSJobParams = @{
+    StartJobParams = @{
         ScriptBlock = {
             1..5 | foreach-object {[pscustomobject]@{ItemID = $_ ; time = Get-Date; JobName = 'TestJob1'}}
         }
@@ -26,7 +26,7 @@
     PreJobCommands = [ScriptBlock]{
         $null = Get-Command Get-Command -ErrorAction Stop
     }
-    StartRSJobParams = @{
+    StartJobParams = @{
         ScriptBlock = {
             $hashtable = @{}
             1..5 | foreach-object {[pscustomobject]@{ItemID = $_ ; time = Get-Date; JobName = 'TestJob2'}} |
@@ -52,7 +52,7 @@
     PreJobCommands = [ScriptBlock]{
         $null = Get-Command Get-Command -ErrorAction Stop
     }
-    StartRSJobParams = @{
+    StartJobParams = @{
         ScriptBlock = {
             $using:TestJob1Items | Measure-object -property ItemID -Maximum -Minimum -Average -Sum -blat
         }
@@ -74,7 +74,7 @@
     PreJobCommands = [ScriptBlock]{
         $null = Get-Command Get-Command -ErrorAction Stop
     }
-    StartRSJobParams = @{
+    StartJobParams = @{
         ScriptBlock = {
             $ToProcess = $using:TestJob2Items
             $ToProcess.Values | foreach-object {{$_}.invoke()}

@@ -48,9 +48,9 @@ Function Start-JSMJob
                 continue nextJobToStart
             }
         }
-        #Prepare the Start-RSJob Parameters
-        $StartRSJobParams = $j.StartRSJobParams
-        $StartRSJobParams.Name = $j.Name
+        #Prepare the StartJob Parameters
+        $StartJobParams = $j.StartJobParams
+        $StartJobParams.Name = $j.Name
         #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartRSJobParameters property)
         if ($j.ArgumentList.count -ge 1)
         {
@@ -58,7 +58,7 @@ Function Start-JSMJob
             Write-Verbose -Message $message1
             try
             {
-                $StartRSJobParams.ArgumentList = @(
+                $StartJobParams.ArgumentList = @(
                     foreach ($a in $j.ArgumentList)
                     {
                         $message = "$($j.Name): Get Argument List Variable $a"
@@ -84,8 +84,8 @@ Function Start-JSMJob
         #if the job definition calls for splitting the workload among multiple jobs
         if ($j.JobSplit -gt 1)
         {
-            $StartRSJobParams.Throttle = $j.JobSplit
-            $StartRSJobParams.Batch = $j.Name
+            $StartJobParams.Throttle = $j.JobSplit
+            $StartJobParams.Batch = $j.Name
             try
             {
                 $message = "$($j.Name): Get Data to Split Source Variable $($j.jobsplitDataVariableName)"
@@ -133,7 +133,7 @@ Function Start-JSMJob
                 {
                     $message = "$($j.Name): Start Split Job $splitjobcount of $($j.JobSplit)"
                     Write-Verbose -Message $message
-                    Start-RSJob @StartRSJobParams | Out-Null
+                    Start-RSJob @StartJobParams | Out-Null
                     Write-Verbose -Message $message
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
                 }
@@ -158,7 +158,7 @@ Function Start-JSMJob
             {
                 $message = "$($j.Name): Start Job"
                 Write-Verbose -Message $message
-                Start-RSJob @StartRSJobParams | Out-Null
+                Start-RSJob @StartJobParams | Out-Null
                 Write-Verbose -Message $message
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
                 $SuccessStartJobs.add($j)

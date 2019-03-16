@@ -6,12 +6,12 @@ $global:decoystring = 'decoystring' #this is for a bug that exists/existed in Po
 $settings = @{}
 $Jobs = @(
     [pscustomobject]@{
-        Name = 'TestAccessToSynchronizedHashtable' #also gets added to StartRSJobParams as Name at runtime
+        Name = 'TestAccessToSynchronizedHashtable' #also gets added to StartJobParams as Name at runtime
         PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . .
         JobSplit = 1 #how many jobs you want to run for your data, if 1, this is ignored
         JobSplitDataVariableName = $null #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored
-        ArgumentList=@('decoystring','testsynchashtable1','testsynchashtable2') #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
-        StartRSJobParams = @{
+        ArgumentList=@('decoystring','testsynchashtable1','testsynchashtable2') #you can add arguments here instead of in the StartJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
+        StartJobParams = @{
             ErrorAction = 'Stop'  #optional, recommended to stop
             ScriptBlock = [ScriptBlock]{ #scriptblock for the job to run
                 param($testsynchashtable1,$testsynchashtable2)#note first argument is not referenced
