@@ -18,7 +18,8 @@ Function Start-JSMJob
         $PreviousAttempts = @(Get-JSMJobAttempt -JobName $j.name)
         $ThisAttemptNo = $($PreviousAttempts.Attempt | Sort-Object -Descending | Select-Object -First 1 -Unique) + 1
         Write-Verbose -Message "$($j.name) Starting Attempt $ThisAttemptNo"
-        $ThisAttempt = Add-JSMJobAttempt -JobName $j.name -JobType RSJob -Attempt $ThisAttemptNo
+        $JobType = switch ($j.JobType) {{[string]::IsNullOrWhiteSpace($_)} {'RSJob'} default {$_}} #default to RSJob since this module first assumed this
+        $ThisAttempt = Add-JSMJobAttempt -JobName $j.name -JobType $JobType -Attempt $ThisAttemptNo
         #Run the PreJobCommands
         if ([string]::IsNullOrWhiteSpace($j.PreJobCommands) -eq $false)
         {
@@ -85,7 +86,6 @@ Function Start-JSMJob
         if ($j.JobSplit -gt 1)
         {
             $StartJobParams.Throttle = $j.JobSplit
-            $StartJobParams.Batch = $j.Name
             try
             {
                 $message = "$($j.Name): Get Data to Split Source Variable $($j.jobsplitDataVariableName)"

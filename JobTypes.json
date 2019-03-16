@@ -27,7 +27,7 @@
             ]
         },
         {
-            "name":"PSTJob",
+            "name":"ThreadJob",
             "Description":"Jobs run/managed by the PSThreadJob Module",
             "commands":[
                 {
@@ -53,8 +53,8 @@
             ]
         },
         {
-            "name":"PSJob",
-            "Description":"Jobs run/managed by the Microsoft.PowerShell.Core Module",
+            "name":"BackgroundJob",
+            "Description":"Jobs run/managed by the native Microsoft.PowerShell.Core Module",
             "commands":[
                 {
                     "type":"StartJob",
