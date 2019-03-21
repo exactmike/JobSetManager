@@ -26,11 +26,7 @@ function Get-JSMProcessingStatusEntry
 
     begin
     {
-        if (-not $(Test-ExistsJSMProcessingStatus))
-        {
-            throw('JSMProcessingLoopStatus is not initialized')
-            Return
-        }
+        Initialize-TrackingVariable
     }
 
     process
