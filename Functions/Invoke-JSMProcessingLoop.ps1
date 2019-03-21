@@ -71,7 +71,7 @@ function Invoke-JSMProcessingLoop
         #Get Completed and Current Jobs
         $JobCompletions = Get-JSMJobCompletion
         $JobFailures = Get-JSMJobFailure
-        $JobCurrent = Get-JSMJobCurrent -JobRequired $JobRequired -JobCompletion $JobCompletions
+        $JobCurrent = Get-JSMJobCurrent
         #Check for jobs that meet their start criteria
         $JobsToStart = @(Get-JSMJobNext -JobCompletion $JobCompletions -JobCurrent $JobCurrent -JobRequired $JobRequired -JobFailure $JobFailures -JobFailureRetryLimit $JobFailureRetryLimit)
         $StartJobSuccesses,$StartJobFailures  = $null

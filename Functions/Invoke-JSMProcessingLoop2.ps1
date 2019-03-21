@@ -71,7 +71,7 @@ function Invoke-JSMProcessingLoop
         #Get Completed and Current Jobs
         $JobCompletions = Get-JSMJobCompletion
         $JobFailures = Get-JSMJobFailure
-        $JobCurrent = Get-JSMJobCurrent -JobRequired $JobRequired -JobCompletion $JobCompletions
+        $JobCurrent = Get-JSMJobCurrent
         #Check for jobs that meet their start criteria
         $JobsToStart = @(Get-JSMJobNext -JobCompletion $JobCompletions -JobCurrent $JobCurrent -JobRequired $JobRequired -JobFailure $JobFailures -JobFailureRetryLimit $JobFailureRetryLimit)
         $StartJobSuccesses,$StartJobFailures  = $null
@@ -105,7 +105,7 @@ function Invoke-JSMProcessingLoop
             $FatalFailure = Start-JSMJobFailureProcess -NewJobFailure $NewJobFailures -JobFailureRetryLimit $JobFailureRetryLimit
         }
         #$JobCompletions = Get-JSMJobCompletion
-        $JobCurrent = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired
+        $JobCurrent = Get-JSMJobCurrent
         #$JobFailures = Get-JSMJobFailure
         $JobPending = Get-JSMJobPending -JobRequired $JobRequired
         if ($true -eq $PeriodicReport -or $true -eq $Interactive)

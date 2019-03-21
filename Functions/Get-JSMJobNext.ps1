@@ -24,7 +24,7 @@ function Get-JSMJobNext
             $JobFailureRetryLimitForThisJob = [math]::Max($j.JobFailureRetryLimit,$JobFailureRetryLimit)
             if (
                 ($j.Name -notin $JobCompletion.Keys) -and
-                ($j.Name -notin $JobCurrent.Keys) -and
+                ($j.Name -notin $JobCurrent.JobName) -and
                 ($j.Name -notin $JobFailure.Keys -or $JobFailure.$($j.Name).FailureCount -lt $JobFailureRetryLimitForThisJob) -and
                 (
                     ($j.DependsOnJobs.count -eq 0) -or
