@@ -1,15 +1,21 @@
 function Get-JSMJobCurrent
 {
+    <#
+        .SYNOPSIS
+            Gets the Current JSM Jobs that have 'Active' Attempts.
+        .DESCRIPTION
+            Gets the Current JSM Jobs that have 'Active' Attempts using the function Get-JSMJobAttempt -Active $true.
+        .EXAMPLE
+            $null = Start-JSMJob -Job @{Name = 'Sleep';Message = 'Sleeps 10 seconds';StartJobParams = @{ScriptBlock = {Start-Sleep -Seconds 10}}}
+            Get-JSMJobCurrent
+
+            Gets the current Job attempts which should include the job Sleep
+
+        .OUTPUTS
+            [pscustomobject]
+    #>
     [cmdletbinding()]
-    param(
-        [parameter(Mandatory)]
-        [psobject[]]$JobRequired
-        ,
-        [parameter(Mandatory)]
-        [hashtable]$JobCompletion
-    )
-    $CurrentRSJobs = @(Get-RSJob | Where-Object -FilterScript {$_.Name -in $JobRequired.Name -and $_.Name -notin $JobCompletion.Keys})
-    $CurrentJobs = @{}
-    $CurrentRSJobs | Select-Object -ExpandProperty Name | Sort-Object -Unique | ForEach-Object {$CurrentJobs.$($_) =  $true}
-    $CurrentJobs
+    param()
+    $CurrentJSMJobs = @(Get-JSMJobAttempt -Active $true)
+    $CurrentJSMJobs
 }
