@@ -38,11 +38,7 @@ function Add-JSMProcessingStatusEntry
       [parameter()]
       [switch]$PassThru
     )
-    if ($false -eq (Test-ExistsJSMProcessingStatus))
-    {
-      $script:JSMProcessingLoopStatus = @(); $script:JSMProcessingLoopStatus = {$script:JSMProcessingLoopStatus}.Invoke()
-      [int32]$script:JSMProcessingStatusEntryID = 0
-    }
+    Initialize-TrackingVariable
     $script:JSMProcessingStatusEntryID++
     $Entry = [pscustomobject]@{
       EntryID = $script:JSMProcessingStatusEntryID;
