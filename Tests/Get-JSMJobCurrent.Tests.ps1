@@ -29,7 +29,7 @@ Describe "$commandname Integration Tests" -Tags "IntegrationTests" {
     }
     Context "Gets Active JSM Job Attempts" {
         $Entries = @(Get-JSMJobCurrent)
-        It "returns all entries when used with no parameters" {
+        It "returns all active Job Attempts and no others" {
             $Entries.count | Should Be 2
             $Entries[0].JobName | Should Be 'GetTheOtherThings'
             $Entries[1].JobName | Should Be 'GetTheOtherOtherThings'
