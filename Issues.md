@@ -8,3 +8,4 @@
 - [ ] Consider adding job variable tracking  - created, removed, currently existing. and being able to temporarially suppress removal for T/S
 - [ ] fix Invoke-JSMProcessingLOop restartstopwatch parameter
 - [x] remove Invoke-JSMProcessingLOop retainjobfailures parameter
+- [ ] JobTypes - make the commands in the JSON a hashtable for easier lookup in the module functions

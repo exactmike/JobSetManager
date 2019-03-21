@@ -1,9 +1,9 @@
 {
     "JobTypes":[
         {
-            "name":"RSJob",
+            "Name":"RSJob",
             "Description":"Jobs run/managed by the PoshRSJob Module",
-            "commands":[
+            "Commands":[
                 {
                     "type":"StartJob",
                     "name":"Start-RSJob"
@@ -27,9 +27,9 @@
             ]
         },
         {
-            "name":"ThreadJob",
+            "Name":"ThreadJob",
             "Description":"Jobs run/managed by the PSThreadJob Module",
-            "commands":[
+            "Commands":[
                 {
                     "type":"StartJob",
                     "name":"Start-PSThreadJob"
@@ -53,9 +53,9 @@
             ]
         },
         {
-            "name":"BackgroundJob",
+            "Name":"BackgroundJob",
             "Description":"Jobs run/managed by the native Microsoft.PowerShell.Core Module",
-            "commands":[
+            "Commands":[
                 {
                     "type":"StartJob",
                     "name":"Start-Job"
