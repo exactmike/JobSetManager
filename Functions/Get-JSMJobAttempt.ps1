@@ -14,7 +14,7 @@ function Get-JSMJobAttempt
         Accepts boolean values and defaults to $True to scope which JobAttempts to get.
         Both $True and $False can be simultaneously specified. $True will get only active (current) attempts and $False will only get inactive attempts.
     .PARAMETER JobType
-        Accepts one or multiple String values from the set @(RSJob,BackgroundJob,ThreadJob).
+        Accepts one or multiple String values from the set @(RSJob,BackgroundJob,ThreadJob).  Defaults to RSJob.
     .PARAMETER StopType
         Accepts one or multiple String values from the set @(Complete,Fail,None).  No Default value.
         Complete scopes the JobAttempts to get to those successfully completed.
