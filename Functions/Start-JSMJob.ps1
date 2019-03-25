@@ -1,5 +1,27 @@
 Function Start-JSMJob
 {
+    <#
+    .SYNOPSIS
+        Starts one or more JSM Jobs using the Job Engine specified in the JobType attribute for each JSM Job
+    .DESCRIPTION
+        Starts one or more JSM Jobs using the Job Engine specified in the JobType attribute for each JSM Job. Runs any specified Pre-Job commands before starting the job. Returns a hashtable with keys for FailedStartJobs and SuccessStartJobs.
+        Designed to be used inside of Invoke-JSMProcessingLoop but supported for stand-alone use for testing and debugging JSM Jobs.
+    .EXAMPLE
+        PS C:\>Start-JSMJob -Job @{Name = 'SleepJob';Message = 'A Job that Sleeps'; JobType = 'BackgroundJob'; StartJobParams = @{ScriptBlock = {Start-Sleep -Seconds 15}}}
+
+        Name                           Value
+        ----                           -----
+        FailedStartJobs                {}
+        SuccessStartJobs               {System.Collections.Hashtable}
+
+        Starts a JSM Job using the native Powershell Jobs functionality and outputs success and failure records in a hashtable.
+    .PARAMETER Job
+        One or more JSM Job objects (PSObjects with the necessary attributes)
+    .INPUTS
+        [pscustomobject]
+    .OUTPUTS
+        [hashtable]
+    #>
     [CmdletBinding()]
     param(
         [psobject[]]$Job
