@@ -125,30 +125,32 @@ Function Start-JSMJob
                 continue nextJobToStart
             }
             $splitjobcount = 0
-            foreach ($split in $splitGroups)
-            {
-                $splitjobcount++
-                $YourSplitData = $DataToSplit[$($split.start)..$($split.end)]
-                try
+            $ThisAttemptJobs = @(
+                foreach ($split in $splitGroups)
                 {
-                    $message = "$($j.Name): Start Split Job $splitjobcount of $($j.JobSplit)"
-                    Write-Verbose -Message $message
-                    Start-RSJob @StartJobParams | Out-Null
-                    Write-Verbose -Message $message
-                    Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
+                    $splitjobcount++
+                    $YourSplitData = $DataToSplit[$($split.start)..$($split.end)]
+                    try
+                    {
+                        $message = "$($j.Name): Start Split Job $splitjobcount of $($j.JobSplit)"
+                        Write-Verbose -Message $message
+                        & $script:jobtypes.$JobType.Commands.StartJob @StartJobParams
+                        Write-Verbose -Message $message
+                        Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
+                    }
+                    catch
+                    {
+                        $myerror = $_.tostring()
+                        Write-Warning -Message $message
+                        Write-Warning -Message $myerror
+                        $FailedStartJobs.add($($j | Select-Object -Property *,@{n='FailureType';e={'JobStartWithSplitData'}}))
+                        Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
+                        Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
+                        Add-JSMJobFailure -Name $j.Name -FailureType 'JobStartWithSplitData' -Attempt $ThisAttempt
+                        continue nextJobToStart
+                    }
                 }
-                catch
-                {
-                    $myerror = $_.tostring()
-                    Write-Warning -Message $message
-                    Write-Warning -Message $myerror
-                    $FailedStartJobs.add($($j | Select-Object -Property *,@{n='FailureType';e={'JobStartWithSplitData'}}))
-                    Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 319
-                    Set-JSMJobAttempt -Attempt $ThisAttemptNo -JobName $j.name -StopType Fail
-                    Add-JSMJobFailure -Name $j.Name -FailureType 'JobStartWithSplitData' -Attempt $ThisAttempt
-                    continue nextJobToStart
-                }
-            }
+            )
             $SuccessStartJobs.add($j)
         }
         #otherwise just start one job
@@ -158,7 +160,7 @@ Function Start-JSMJob
             {
                 $message = "$($j.Name): Start Job"
                 Write-Verbose -Message $message
-                Start-RSJob @StartJobParams | Out-Null
+                $ThisAttemptJob = @(& $script:jobtypes.$JobType.Commands.StartJob @StartJobParams)
                 Write-Verbose -Message $message
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
                 $SuccessStartJobs.add($j)

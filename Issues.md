@@ -9,3 +9,4 @@
 - [ ] fix Invoke-JSMProcessingLOop restartstopwatch parameter
 - [x] remove Invoke-JSMProcessingLOop retainjobfailures parameter
 - [ ] JobTypes - make the commands in the JSON a hashtable for easier lookup in the module functions
+- [ ] Add job objects to the attempt . . . Start-JSMJob
