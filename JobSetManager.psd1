@@ -73,7 +73,6 @@ FunctionsToExport = @(
     'Add-JSMJobAttempt'
     'Add-JSMJobCompletion'
     'Add-JSMJobFailure'
-    'Add-JSMProcessingStatusEntry'
     'Clear-JSMJobAttempt'
     'Clear-JSMJobCompletion'
     'Clear-JSMFailedJob'
