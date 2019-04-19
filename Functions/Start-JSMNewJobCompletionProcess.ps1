@@ -155,7 +155,7 @@ function Start-JSMNewJobCompletionProcess
                     Write-Verbose -Message $message
                     $message = "$($j.Name): Test JobResults for Validations ($($j.ResultsValidation.Keys -join ','))"
                     Write-Verbose -Message $message
-                    switch (Test-JSMJobResult -ResultsValidation $j.ResultsValidation -JobResults $JobResults)
+                    switch (Test-JSMJobResult -ResultsValidation $j.ResultsValidation -JobResults $JobResults -JobName $j.Name)
                     {
                         $true
                         {
