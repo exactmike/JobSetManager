@@ -33,6 +33,7 @@ function Test-JSMJobResult
                     {
                         $message = "$JobName : Passed Validation AllowNull ($($ResultsValidation.AllowNull))"
                         Write-Verbose -Message $message
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $true -EventID 438
                         $message = "$JobName : Validation AllowNull ($($ResultsValidation.AllowNull)) Passed. Skipping other validations."
                         Write-Verbose -Message $message
                         $Result
@@ -46,8 +47,9 @@ function Test-JSMJobResult
                     $Result = $JobResults.count -eq 0
                     if ($Result -eq $true)
                     {
-                        $message = "$JobName : Passed Validation $AllowEmptyArray ($($ResultsValidation.AllowEmptyArray))"
+                        $message = "$JobName : Passed Validation AllowEmptyArray ($($ResultsValidation.AllowEmptyArray))"
                         Write-Verbose -Message $message
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $true -EventID 436
                         $message = "$JobName : Validation AllowEmptyArray ($($ResultsValidation.AllowEmptyArray)) Passed. Skipping other validations."
                         Write-Verbose -Message $message
                         $Result
@@ -65,12 +67,14 @@ function Test-JSMJobResult
                         {
                             $message = "$JobName : Passed Validation NotNull ($($ResultsValidation.NotNull))"
                             Write-Verbose -Message $message
+                            Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $true -EventID 420
                             $Result
                         }
                         $false
                         {
                             $message = "$JobName : FAILED Validation NotNull ($($ResultsValidation.NotNull)). Skipping other validations."
                             Write-Warning -Message $message
+                            Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $false -EventID 421
                             $Result
                             break
                         }
@@ -85,11 +89,14 @@ function Test-JSMJobResult
                     {
                         $message = "$JobName : Passed Validation ValidateType ($($ResultsValidation.ValidateType.Name))"
                         Write-Verbose -Message $message
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $true -EventID 422
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$JobName : Failed Validation ValidateType ($($ResultsValidation.ValidateType.Name))"
                         Write-Warning -Message $message
+                        $message = $message + " : Actual Type $($JobResults.gettype().name)"
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $false -EventID 423
                     }
                     $Result
                 }
@@ -102,11 +109,15 @@ function Test-JSMJobResult
                     {
                         $message = "$JobName : Validation ValidateElementCountExpression ($($ResultsValidation.ValidateElementCountExpression)). Result Count: $($JobResults.count)"
                         Write-Verbose -Message $message
+                        $message = $message + " : Actual Count $($JobResults.count)"
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $true -EventID 424
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$JobName : Validation ValidateElementCountExpression ($($ResultsValidation.ValidateElementCountExpression)). Result Count: $($JobResults.count)"
                         Write-Warning -Message $message
+                        $message = $message + " : Actual Count $($JobResults.count)"
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $false -EventID 425
                     }
                     $Result
                 }
@@ -136,11 +147,15 @@ function Test-JSMJobResult
                     {
                         $message = "$JobName : Validation ValidateElementMember ($($ResultsValidation.ValidateElementMember))"
                         Write-Verbose -Message $message
+                        $message = $message + " : Contains Elements $($ResultsValidation.ValidateElementMember -join ';')"
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $true -EventID 426
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$JobName : Validation ValidateElementMember ($($ResultsValidation.ValidateElementMember))"
                         Write-Warning -Message $message
+                        $message = $message + " : Missing One or more Elements $($ResultsValidation.ValidateElementMember -join ';')"
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $false -EventID 427
                     }
                     $Result
                 }
@@ -148,16 +163,20 @@ function Test-JSMJobResult
                 {
                     $message = "$JobName : Validation ValidatePath ($($ResultsValidation.ValidatePath))"
                     Write-Verbose -Message $message
-                    $Result = Test-Path -path $JobResults
+                    $Result = @(Test-Path -path $JobResults) -notcontains $false
                     if ($Result -eq $true)
                     {
                         $message = "$JobName : Validation ValidatePath ($($ResultsValidation.ValidatePath))"
                         Write-Verbose -Message $message
+                        $message = $message + " : ValidPath(s) $($JobResults -join ';')"
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $true -EventID 428
                     }
                     if ($Result -eq $false)
                     {
                         $message = "$JobName : Validation ValidatePath ($($ResultsValidation.ValidatePath))"
                         Write-Warning -Message $message
+                        $message = $message + " :  InValidPath(s) in Paths $($JobResults -join ';')"
+                        Add-JSMProcessingStatusEntry -Job $JobName -Message $message -Status $false -EventID 429
                     }
                     $Result
                 }
