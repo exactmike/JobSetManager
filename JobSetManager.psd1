@@ -12,7 +12,7 @@
 RootModule = 'JobSetManager.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.3.0'
+ModuleVersion = '0.3.1'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop','Core')
@@ -27,10 +27,10 @@ Author = 'Mike Campbell'
 CompanyName = 'Exact Solutions'
 
 # Copyright statement for this module
-Copyright = '2018'
+Copyright = '2019'
 
 # Description of the functionality provided by this module
-Description = 'add on module for poshrsjob to manage job hierarchies'
+Description = 'add on module for poshrsjob, ThreadJob, or BackgroundJobs to manage complex interdependent Jobs'
 
 # Minimum version of the Windows PowerShell engine required by this module
 # PowerShellVersion = ''
