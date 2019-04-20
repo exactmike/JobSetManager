@@ -35,6 +35,10 @@ function Set-JSMPeriodicReportSetting
         [bool]$MissedIntervalTrue = $true
         ,
         [bool]$FirstTestTrue = $true
+        ,
+        [parameter()]
+        [ValidateScript({Test-Path -Path $(Split-Path -Path $_ -Parent)})]
+        $LogFilePath
     )
     $Script:JSMPeriodicReportSetting = [PSCustomObject]@{
         SendEmail = $SendEmail
@@ -50,6 +54,7 @@ function Set-JSMPeriodicReportSetting
         Length = $Length
         MissedIntervalTrue = $MissedIntervalTrue
         FirstTestTrue = $FirstTestTrue
+        LogFilePath = $LogFilePath
     }
     $Script:JSMPeriodicReportSetting
 }

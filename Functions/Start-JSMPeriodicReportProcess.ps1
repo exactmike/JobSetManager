@@ -55,6 +55,11 @@ function Start-JSMPeriodicReportProcess
         }
         [bool]$SendTheReport = Test-JSMStopWatchPeriod @TestStopWatchPeriodParams
         Write-Verbose -Message "SendtheReport is set to $SendTheReport"
+        if ($null -ne $PeriodicReportSetting.LogFilePath)
+        {
+            Write-Verbose -Message "Logging JSM Processing Status to $($PeriodicReportSetting.LogFilePath)"
+            $script:JSMProcessingLoopStatus | Export-Csv -Path $PeriodicReportSetting.LogFilePath -NoTypeInformation -Force -UseCulture
+        }
     }
     if ($true -eq $SendTheReport -and $PeriodicReportSetting.SendEmail)
     {
