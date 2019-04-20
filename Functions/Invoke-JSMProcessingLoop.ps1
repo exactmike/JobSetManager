@@ -143,8 +143,6 @@ function Invoke-JSMProcessingLoop
             }
             else {
                 [gc]::Collect()
-                [gc]::WaitForPendingFinalizers()
-                [gc]::Collect()
                 if ($Interactive) {$VerbosePreference = 'Continue'}
                 Write-Verbose -message "Safe to interrupt Job Processing for the next $SleepSecondsBetweenJobCheck seconds"
                 Start-Sleep -Seconds $SleepSecondsBetweenJobCheck
