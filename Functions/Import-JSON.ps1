@@ -1,10 +1,11 @@
-﻿    Function Import-JSON {
-        
+﻿Function Import-JSON
+{
+
     [cmdletbinding()]
     param
     (
         [parameter(Mandatory)]
-        [ValidateScript( {Test-Path -Path $_})]
+        [ValidateScript( { Test-Path -Path $_ })]
         $Path
         ,
         [parameter()]
@@ -13,7 +14,6 @@
     )
     begin
     {
-        Get-CallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState
     }
     end
     {
@@ -22,7 +22,7 @@
             Raw  = $true
         }
         if ($null -ne $Encoding)
-        {$GetContentParams.Encoding = $Encoding}
+        { $GetContentParams.Encoding = $Encoding }
         try
         {
             $Content = Get-Content @GetContentParams
@@ -41,4 +41,4 @@
         }
     }
 
-    }
+}

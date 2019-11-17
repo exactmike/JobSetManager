@@ -1,36 +1,36 @@
 {
-    "JobTypes":[
+    "JobTypes": [
         {
-            "Name":"RSJob",
-            "Description":"Jobs run/managed by the PoshRSJob Module",
-            "Commands":{
-                "StartJob":"Start-RSJob",
-                "GetJob":"Get-RSJob",
-                "StopJob":"Stop-RSJob",
-                "ReceiveJob":"Receive-RSJob",
-                "RemoveJob":"Remove-RSJob"
+            "Name": "RSJob",
+            "Description": "Jobs run/managed by the PoshRSJob Module",
+            "Commands": {
+                "StartJob": "Start-RSJob",
+                "GetJob": "Get-RSJob",
+                "StopJob": "Stop-RSJob",
+                "ReceiveJob": "Receive-RSJob",
+                "RemoveJob": "Remove-RSJob"
             }
         },
         {
-            "Name":"ThreadJob",
-            "Description":"Jobs run/managed by the PSThreadJob Module",
-            "Commands":{
-                "StartJob":"Start-ThreadJob",
-                "GetJob":"Get-Job",
-                "StopJob":"Stop-Job",
-                "ReceiveJob":"Receive-Job",
-                "RemoveJob":"Remove-Job"
+            "Name": "ThreadJob",
+            "Description": "Jobs run/managed by the PSThreadJob Module",
+            "Commands": {
+                "StartJob": "Start-ThreadJob",
+                "GetJob": "Get-Job",
+                "StopJob": "Stop-Job",
+                "ReceiveJob": "Receive-Job",
+                "RemoveJob": "Remove-Job"
             }
         },
         {
-            "Name":"BackgroundJob",
-            "Description":"Jobs run/managed by the native Microsoft.PowerShell.Core Module",
-            "Commands":{
-                "StartJob":"Start-Job",
-                "GetJob":"Get-Job",
-                "StopJob":"Stop-Job",
-                "ReceiveJob":"Receive-Job",
-                "RemoveJob":"Remove-Job"
+            "Name": "BackgroundJob",
+            "Description": "Jobs run/managed by the native Microsoft.PowerShell.Core Module",
+            "Commands": {
+                "StartJob": "Start-Job",
+                "GetJob": "Get-Job",
+                "StopJob": "Stop-Job",
+                "ReceiveJob": "Receive-Job",
+                "RemoveJob": "Remove-Job"
             }
         }
     ]

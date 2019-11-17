@@ -10,3 +10,4 @@
 - [x] remove Invoke-JSMProcessingLOop retainjobfailures parameter
 - [ ] JobTypes - make the commands in the JSON a hashtable for easier lookup in the module functions
 - [ ] Add job objects to the attempt . . . Start-JSMJob
+- [ ] A JobSet should have a name/identifier so that JSM could actually manage multiple sets simultaneously, maybe even from a queue of some kind
