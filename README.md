@@ -1,3 +1,3 @@
 # JobSetManager
 
-Add-on module for [PoshRSJob](https://github.com/proxb/PoshRSJob) (and hopefully other Runspace/Job frameworks) to manage job sets that have multiple jobs with multiple interdependencies.
+PowerShell orchestration Module to manage sets of PowerShell jobs that may have multiple interdependencies and which may benefit from automatic validation prior to execution of dependent jobs in the flow.
