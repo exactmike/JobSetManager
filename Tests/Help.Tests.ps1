@@ -1,41 +1,49 @@
 $ModuleName = 'JobSetManager'
 
-Describe "Public commands have comment-based or external help" -Tags 'Build' {
-    BeforeAll {
-        $functions = Get-Command -Module $ModuleName
-        $help = foreach ($function in $functions) {
-            Get-Help -Name $function.Name
-        }
+BeforeDiscovery {
+    Import-Module (Join-Path $PSScriptRoot '..\JobSetManager.psd1') -Force
+
+    $HelpByCommand = @{}
+    foreach ($function in (Get-Command -Module $ModuleName)) {
+        $HelpByCommand[$function.Name] = Get-Help -Name $function.Name -ErrorAction SilentlyContinue
     }
 
-    It "Should have a Description or Synopsis for [<Name>]" -ForEach @(
-        (Get-Command -Module $ModuleName) | ForEach-Object { @{ Name = $_.Name } }
-    ) {
-        $node = Get-Help -Name $Name
-        ($node.Description | Out-String) + ($node.Synopsis | Out-String) | Should -Not -BeNullOrEmpty
+    $CommandsForHelp = $HelpByCommand.Keys | ForEach-Object { @{ Name = $_ } }
+
+    $ExamplesForHelp = $HelpByCommand.Keys | ForEach-Object {
+        @{ Name = $_; Examples = $HelpByCommand[$_].Examples }
     }
 
-    It "Should have an Example for [<Name>]" -ForEach @(
-        (Get-Command -Module $ModuleName) | ForEach-Object { @{ Name = $_.Name } }
-    ) {
-        $node = Get-Help -Name $Name
-        $node.Examples | Should -Not -BeNullOrEmpty
-        $node.Examples | Out-String | Should -Match $Name
-    }
-
-    It "Parameter [<ParameterName>] of [<CommandName>] should have a description" -ForEach @(
-        (Get-Command -Module $ModuleName) | ForEach-Object {
-            $cmdName = $_.Name
-            $node = Get-Help -Name $cmdName
-            foreach ($parameter in $node.Parameters.Parameter)
-            {
-                if ($parameter.Name -notmatch 'WhatIf|Confirm')
-                {
-                    @{ CommandName = $cmdName; ParameterName = $parameter.Name; Parameter = $parameter }
+    $ParametersForHelp = foreach ($cmdName in $HelpByCommand.Keys) {
+        $node = $HelpByCommand[$cmdName]
+        foreach ($parameter in $node.Parameters.Parameter) {
+            if ($parameter.Name -notmatch 'WhatIf|Confirm') {
+                @{
+                    CommandName   = $cmdName
+                    ParameterName = $parameter.Name
+                    Description   = $parameter.Description.Text
                 }
             }
         }
-    ) {
-        $Parameter.Description.Text | Should -Not -BeNullOrEmpty
+    }
+}
+
+Describe "Public commands have comment-based or external help" -Tags 'Build' {
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot '..\JobSetManager.psd1') -Force
+    }
+
+    It "Should have a Description or Synopsis for [<Name>]" -ForEach $CommandsForHelp {
+        $node = Get-Help -Name $Name -ErrorAction SilentlyContinue
+        ($node.Description | Out-String) + ($node.Synopsis | Out-String) | Should -Not -BeNullOrEmpty
+    }
+
+    It "Should have an Example for [<Name>]" -ForEach $ExamplesForHelp {
+        $Examples | Should -Not -BeNullOrEmpty
+        $Examples.example.code | Out-String | Should -Match $Name
+    }
+
+    It "Parameter [<ParameterName>] of [<CommandName>] should have a description" -ForEach $ParametersForHelp {
+        $Description | Should -Not -BeNullOrEmpty
     }
 }
