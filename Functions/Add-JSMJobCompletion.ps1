@@ -5,6 +5,8 @@ function Add-JSMJobCompletion
         Adds an entry for a completed JSM Job to the JobCompletions module variable
     .DESCRIPTION
         Adds an entry for a successfully completed JSM Job to the JobCompletions module variable which is a hashtable of JobNames with the completed JobAttempt as the value.
+    .PARAMETER Name
+        The name of the job to mark as completed.
     .EXAMPLE
         PS C:\> Add-JSMJobCompletion -Name 'Job1'
 

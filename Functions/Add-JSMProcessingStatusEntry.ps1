@@ -8,6 +8,14 @@ function Add-JSMProcessingStatusEntry
 
     The entry is structured in the sense that it includes attributes for JobName, Message, and Status and automatically adds a TimeStamp
 
+  .PARAMETER JobName
+    The name of the job associated with this status entry.
+  .PARAMETER Message
+    A descriptive message for the status entry.
+  .PARAMETER Status
+    A boolean indicating success ($true) or failure ($false) for the event.
+  .PARAMETER PassThru
+    When specified, outputs the newly created status entry to the pipeline in addition to storing it.
   .EXAMPLE
     PS C:\> Add-JSMProcessingStatusEntry -JobName GetUsers -Message 'Ready to start' -Status $true -PassThru
 

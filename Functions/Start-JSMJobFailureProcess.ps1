@@ -2,7 +2,7 @@ Function Start-JSMJobFailureProcess
 {
     <#
     .SYNOPSIS
-        Handles failed jobs — either removes them for retry or escalates to fatal failure.
+        Handles failed jobs - either removes them for retry or escalates to fatal failure.
     .DESCRIPTION
         For each failed job, compares the failure count against the retry limit. If the limit
         is exceeded, marks the situation as a fatal failure. Otherwise, removes the underlying
