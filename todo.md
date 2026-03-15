@@ -12,6 +12,7 @@ Items discovered during code review. Each entry includes the source location and
 **Comment in code:** `#will add the attempt object here later after adding attempt parameter and figuring out attempt tracking`
 **Intent:** Store the actual attempt object (a `[pscustomobject]` with JobName, Attempt, JobType, Active, Start, Stop, StopType) so failure records carry full history.
 **Dependency:** Attempt tracking via `$script:JobAttempts` / `Add-JSMJobAttempt` already exists — the wiring just hasn't been done.
+**Lint impact:** Until this is implemented, `$Attempt` generates a `PSReviewUnusedParameter` PSScriptAnalyzer warning. A suppression should be added in the interim or when the feature is complete.
 
 ---
 
@@ -76,3 +77,35 @@ Items discovered during code review. Each entry includes the source location and
 #$script:JobAttempts.Set($index,$JobAttemptToSet)
 ```
 **Context:** These lines are dead code — the current approach mutates the object directly (which works because `$script:JobAttempts` holds reference types). Either remove the dead code or add a comment explaining why direct mutation is sufficient.
+
+---
+
+### 10. Replace `Invoke-Expression` in `Test-JSMJobResult`
+**File:** `Functions/Test-JSMJobResult.ps1` (line 128)
+**Status:** Working but flagged by PSScriptAnalyzer (`PSAvoidUsingInvokeExpression`).
+**Code:**
+```powershell
+$Result = Invoke-Expression "$($JobResults.count) $($ResultsValidation.ValidateElementCountExpression)"
+```
+**Context:** `ValidateElementCountExpression` is a caller-supplied string like `-gt 0` or `-eq 5`. The intent is to compare the job result count against a threshold using an arbitrary operator. `Invoke-Expression` works but is flagged as a security risk because the expression string comes from user input.
+**Suggested fix:** Parse the expression into operator and operand, then evaluate using a `switch` on the operator (`-eq`, `-ne`, `-gt`, `-ge`, `-lt`, `-le`). This restricts inputs to valid numeric comparisons and eliminates the `Invoke-Expression` call. Would need to define behavior for unsupported operators (throw vs. return `$false`).
+
+---
+
+### 11. Investigate commented-out `$failedJobs` filter in `Get-JSMJobPending`
+**File:** `Functions/Get-JSMJobPending.ps1` (lines 24–28)
+**Status:** `$failedJobs = Get-JSMJobFailure` is called but its only usage is commented out.
+**Code:**
+```powershell
+$failedJobs = Get-JSMJobFailure
+$Pending = $JobRequired | Where-object {
+    $_.Name -notin $jobCompletions.Keys -and
+    $_.Name -notin $currentJobs.Name #-and
+    #$_.Name -notin $failedJobs.Keys
+}
+```
+**Questions to answer:**
+- Was `$failedJobs.Keys` excluded intentionally to allow failed jobs to remain "pending" so that `Start-JSMJobFailureProcess` can retry them on the next loop iteration?
+- If so, should the dead assignment (`$failedJobs = Get-JSMJobFailure`) be removed entirely to avoid the `PSUseDeclaredVarsMoreThanAssignments` lint warning and the unnecessary function call?
+- Or is there a planned use for `$failedJobs` in this function (e.g. a future "failed jobs are not retryable" code path)?
+**Resolution options:** Remove the dead assignment if the exclusion is permanently disabled; restore and document if retryable-failure logic needs to be tightened.
