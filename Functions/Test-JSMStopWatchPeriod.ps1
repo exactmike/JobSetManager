@@ -1,5 +1,31 @@
 function Test-JSMStopWatchPeriod
 {
+    <#
+    .SYNOPSIS
+        Tests whether a specified time interval has elapsed on a stopwatch.
+    .DESCRIPTION
+        Evaluates whether the given interval (defined by Units and Length) has elapsed since the
+        last check. Supports optional first-call-true behavior and missed-interval detection.
+        Uses script-scoped tracking variables to detect interval boundaries.
+    .PARAMETER Units
+        The unit of time to measure. Valid values: Milliseconds, Seconds, Minutes, Hours, Days.
+    .PARAMETER Stopwatch
+        The System.Diagnostics.Stopwatch instance to evaluate.
+    .PARAMETER Length
+        The number of units that must elapse before returning $true.
+    .PARAMETER FirstTestTrue
+        When specified, returns $true on the first call regardless of elapsed time.
+    .PARAMETER MissedIntervalTrue
+        When specified, returns $true if more than one interval was missed since the last check.
+    .PARAMETER Reset
+        When specified, resets the first-test state tracking variable.
+    .OUTPUTS
+        [bool]
+    .EXAMPLE
+        PS C:\> Test-JSMStopWatchPeriod -Units Minutes -Stopwatch $sw -Length 5
+
+        Returns $true each time a 5-minute interval boundary is crossed.
+    #>
     [cmdletbinding()]
     param
     (

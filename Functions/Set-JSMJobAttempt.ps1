@@ -1,5 +1,22 @@
 function Set-JSMJobAttempt
 {
+    <#
+    .SYNOPSIS
+        Records the completion or failure of a job attempt.
+    .DESCRIPTION
+        Finds the specified job attempt record by job name and attempt number, then sets the
+        Stop timestamp, StopType, and marks the attempt as inactive.
+    .PARAMETER JobName
+        The name of the job whose attempt is being updated.
+    .PARAMETER Attempt
+        The attempt number to update.
+    .PARAMETER StopType
+        Whether the attempt completed successfully ('Complete') or failed ('Fail').
+    .EXAMPLE
+        PS C:\> Set-JSMJobAttempt -JobName 'Job1' -Attempt 1 -StopType Complete
+
+        Marks attempt 1 of Job1 as successfully completed.
+    #>
     [cmdletbinding()]
     param(
         [parameter(Mandatory)]

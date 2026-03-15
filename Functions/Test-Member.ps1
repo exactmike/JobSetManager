@@ -1,8 +1,14 @@
 function Test-Member
 {
     <#
-            .ForwardHelpTargetName Get-Member
-            .ForwardHelpCategory Cmdlet
+    .SYNOPSIS
+        Tests whether an object has the specified member(s).
+    .DESCRIPTION
+        A proxy function for Get-Member that returns $true if the object has at least one member
+        matching the given criteria, or $false if none are found. Accepts the same parameters
+        as Get-Member.
+    .ForwardHelpTargetName Get-Member
+    .ForwardHelpCategory Cmdlet
     #>
     [CmdletBinding()]
     param(

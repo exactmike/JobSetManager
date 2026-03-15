@@ -1,5 +1,32 @@
 function Get-JSMJobSetDiagram
 {
+    <#
+    .SYNOPSIS
+        Generates a PSGraph flow diagram for an entire job set.
+    .DESCRIPTION
+        Produces a dependency flow diagram for all jobs in the set with virtual start/end nodes.
+        In Progress mode, colors each job node based on its current state: pending (gainsboro),
+        running (deepskyblue), failed-and-running (yellow1), failed (brown1), or
+        completed (chartreuse). Requires the PSGraph module.
+    .PARAMETER JobSet
+        The array of job definition objects to diagram.
+    .PARAMETER Progress
+        When specified, enables Progress mode to color nodes by current job state.
+    .PARAMETER JobCompletion
+        Hashtable of completed job names. Required with -Progress.
+    .PARAMETER JobCurrent
+        Hashtable of currently running job names. Required with -Progress.
+    .PARAMETER JobFailure
+        Hashtable of failed job names. Required with -Progress.
+    .EXAMPLE
+        PS C:\> Get-JSMJobSetDiagram -JobSet $jobs
+
+        Renders a static dependency flow diagram for the job set.
+    .EXAMPLE
+        PS C:\> Get-JSMJobSetDiagram -JobSet $jobs -Progress -JobCompletion $completions -JobCurrent $current -JobFailure $failures
+
+        Renders a color-coded progress diagram showing real-time job states.
+    #>
     [cmdletbinding(DefaultParameterSetName='Static')]
     param(
         [parameter(Mandatory)]

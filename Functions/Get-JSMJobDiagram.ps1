@@ -1,5 +1,19 @@
 function Get-JSMJobDiagram
 {
+    <#
+    .SYNOPSIS
+        Generates a PSGraph diagram for one or more job definitions.
+    .DESCRIPTION
+        Uses PSGraph (graphviz) to produce a visual diagram for each job showing its
+        dependencies and result variable. Split jobs are rendered as parallelograms;
+        standard jobs as boxes. Requires the PSGraph module.
+    .PARAMETER Job
+        One or more job definition objects to diagram.
+    .EXAMPLE
+        PS C:\> Get-JSMJobDiagram -Job $jobDefinitions
+
+        Renders and exports a diagram for each job definition provided.
+    #>
     [CmdletBinding()]
     param
     (

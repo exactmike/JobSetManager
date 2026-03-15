@@ -1,5 +1,23 @@
 function Add-JSMJobFailure
 {
+    <#
+    .SYNOPSIS
+        Adds or updates a failure record for a JSM job in the JobFailures module variable.
+    .DESCRIPTION
+        Adds a new entry to the script-scoped JobFailures hashtable or updates an existing one.
+        If the job already has a failure record, increments the failure count and appends
+        the failure type. Also writes processing status entries for the failure event.
+    .PARAMETER Name
+        The name of the job that failed.
+    .PARAMETER FailureType
+        A string identifying the type of failure (e.g. 'StaleJob', 'ResultValidation').
+    .PARAMETER Attempt
+        The job attempt object associated with this failure.
+    .EXAMPLE
+        PS C:\> Add-JSMJobFailure -Name 'Job1' -FailureType 'ResultValidation' -Attempt $attempt
+
+        Records a ResultValidation failure for Job1.
+    #>
     [cmdletbinding()]
     param(
         [parameter(Mandatory)]

@@ -1,5 +1,17 @@
 function Initialize-TrackingVariable
 {
+    <#
+    .SYNOPSIS
+        Initializes module script-scope tracking variables if they do not already exist.
+    .DESCRIPTION
+        Idempotently creates the script-scoped variables used by JobSetManager: JobAttempts,
+        JSMProcessingLoopStatus, JSMProcessingStatusEntryID, JobCompletions, JobFailures,
+        and SplitJobGroups. Existing variables are not reset.
+    .EXAMPLE
+        PS C:\> Initialize-TrackingVariable
+
+        Ensures all required module tracking variables exist without resetting any existing state.
+    #>
     if ($true -ne (Test-Path variable:Script:JobAttempts))
     {
       $script:JobAttempts = @()
