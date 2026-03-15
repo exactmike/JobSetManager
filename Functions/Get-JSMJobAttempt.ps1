@@ -14,8 +14,8 @@ function Get-JSMJobAttempt
         Accepts boolean values and defaults to $True to scope which JobAttempts to get.
         Both $True and $False can be simultaneously specified. $True will get only active (current) attempts and $False will only get inactive attempts.
     .PARAMETER JobType
-        Accepts one or multiple String values from the set @(RSJob,PSJob,PSThreadJob).  Defaults to RSJob.
-        This parameter is here primarily in ancticipation of future support for native PSJobs and for PSThreadJob jobs by JobSetManager.  In this version, only RSJobs are supported.
+        Accepts one or multiple String values from the set @(PSJob,ThreadJob).  Defaults to PSJob.
+        PSJob uses native Start-Job background jobs. ThreadJob uses Start-ThreadJob thread-based jobs.
     .PARAMETER StopType
         Accepts one or multiple String values from the set @(Complete,Fail,None).  No Default value.
         Complete scopes the JobAttempts to get to those successfully completed.
@@ -53,8 +53,8 @@ function Get-JSMJobAttempt
         [bool[]]$Active = $true
         ,
         [parameter(ParameterSetName = 'Specific')]
-        [ValidateSet('RSJob','PSJob','PSThreadJob')]
-        [string[]]$JobType = 'RSJob'
+        [ValidateSet('PSJob','ThreadJob')]
+        [string[]]$JobType = 'PSJob'
         ,
         [parameter(ParameterSetName = 'Specific')]
         [ValidateSet('Complete','Fail','None')]
@@ -80,7 +80,7 @@ function Get-JSMJobAttempt
                         }
                         "JobType"
                         {
-                            Set-Variable -Name $k -Value @('RSJob','PSJob')
+                            Set-Variable -Name $k -Value @('PSJob','ThreadJob')
                         }
                         "StopType"
                         {

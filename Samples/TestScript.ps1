@@ -1,20 +1,17 @@
-Import-Module PoshRSJob
 Import-Module JobSetManager -Force
 $global:testsynchashtable1 = [hashtable]::Synchronized(@{})
 $global:testsynchashtable2 = [hashtable]::Synchronized(@{})
-$global:decoystring = 'decoystring' #this is for a bug that exists/existed in PoshRSJob
 $settings = @{}
 $Jobs = @(
     [pscustomobject]@{
-        Name = 'TestAccessToSynchronizedHashtable' #also gets added to StartRSJobParams as Name at runtime
+        Name = 'TestAccessToSynchronizedHashtable' #also gets added to StartJobParams as Name at runtime
         PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . .
         JobSplit = 1 #how many jobs you want to run for your data, if 1, this is ignored
         JobSplitDataVariableName = $null #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored
-        ArgumentList=@('decoystring','testsynchashtable1','testsynchashtable2') #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
-        StartRSJobParams = @{
-            ErrorAction = 'Stop'  #optional, recommended to stop
+        ArgumentList=@('testsynchashtable1','testsynchashtable2') #array of variable names to resolve and pass as ArgumentList
+        StartJobParams = @{
             ScriptBlock = [ScriptBlock]{ #scriptblock for the job to run
-                param($testsynchashtable1,$testsynchashtable2)#note first argument is not referenced
+                param($testsynchashtable1,$testsynchashtable2)
                 [System.Threading.Monitor]::Enter($testsynchashtable1.SyncRoot)
                 $testsynchashtable1.table1 = $true
                 [System.Threading.Monitor]::Exit($testsynchashtable1.SyncRoot)
@@ -34,8 +31,6 @@ $Jobs = @(
         PostJobCommands = [ScriptBlock]{} #this code runs after the job successfully completes.  runs in the control runspace
     }
 )
-#test-getVariable -job $jobs[0]
-Invoke-JobProcessingLoop -Settings $settings -JobDefinitions $Jobs -SleepSecondsBetweenJobCheck 5 -Interactive
-$decoystring
+Invoke-JSMProcessingLoop -Condition $settings -JobDefinition $Jobs -SleepSecondsBetweenJobCheck 5 -Interactive
 $testsynchashtable1
 $testsynchashtable2

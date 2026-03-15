@@ -59,6 +59,11 @@ function Get-JSMJobSetDiagram
         }
     }
     #end function Get-fillcolor
+    if (-not (Get-Command 'graph' -ErrorAction SilentlyContinue))
+    {
+        Write-Warning "Get-JSMJobSetDiagram requires the PSGraph module. Install with: Install-Module PSGraph"
+        return
+    }
     $JobSetDependencies = $JobSet.DependsOnJobs | Select-Object -Unique
     $graphDefinition = $(Switch ($PSCmdlet.ParameterSetName)
     {

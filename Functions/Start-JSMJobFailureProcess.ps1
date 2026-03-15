@@ -1,5 +1,24 @@
 Function Start-JSMJobFailureProcess
 {
+    <#
+    .SYNOPSIS
+        Handles failed jobs — either removes them for retry or escalates to fatal failure.
+    .DESCRIPTION
+        For each failed job, compares the failure count against the retry limit. If the limit
+        is exceeded, marks the situation as a fatal failure. Otherwise, removes the underlying
+        PS job (and split sub-jobs if applicable) so the job can be retried on the next loop
+        iteration.
+    .PARAMETER NewJobFailure
+        One or more job failure objects, each being a job definition with an added FailureType property.
+    .PARAMETER JobFailureRetryLimit
+        The global retry limit. Per-job limits are compared against this and the higher value applies.
+    .EXAMPLE
+        PS C:\> Start-JSMJobFailureProcess -NewJobFailure $failures -JobFailureRetryLimit 3
+
+        Processes failures. Returns $true if any failure was fatal, $false otherwise.
+    .OUTPUTS
+        [bool] $true if a fatal failure occurred, $false if all failures are retryable.
+    #>
     [CmdletBinding()]
     param(
         [psobject[]]$NewJobFailure
@@ -27,9 +46,19 @@ Function Start-JSMJobFailureProcess
             Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $false -EventID 506
             try
             {
-                $message = "$($j.Name): Removing Failed RSJob(s)."
+                $message = "$($j.Name): Removing Failed Job(s)."
                 Write-Verbose -Message $message
-                Get-RSJob -Name $j.name | Remove-RSJob -ErrorAction Stop
+                # Remove regular job or split sub-jobs
+                if ($null -ne $script:SplitJobGroups -and $script:SplitJobGroups.ContainsKey($j.Name))
+                {
+                    $subJobNames = $script:SplitJobGroups[$j.Name]
+                    Get-Job | Where-Object { $_.Name -in $subJobNames } | Remove-Job -ErrorAction Stop
+                    $script:SplitJobGroups.Remove($j.Name)
+                }
+                else
+                {
+                    Get-Job -Name $j.Name -ErrorAction SilentlyContinue | Remove-Job -ErrorAction Stop
+                }
                 Write-Verbose -Message $message
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 510
                 Add-JSMProcessingStatusEntry -Job $j.name -Message "Failed Job May Re-Attempt" -Status $true -EventID 510

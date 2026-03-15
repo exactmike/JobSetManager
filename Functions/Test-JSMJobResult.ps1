@@ -1,5 +1,26 @@
 function Test-JSMJobResult
 {
+    <#
+    .SYNOPSIS
+        Validates job output against a set of result validation rules.
+    .DESCRIPTION
+        Evaluates job results against one or more validation rules defined in the ResultsValidation
+        hashtable on a job definition. Supported validations: AllowNull, AllowEmptyArray, NotNull,
+        ValidateType, ValidateElementCountExpression, ValidateElementMember, ValidatePath.
+        Returns $true if all applicable validations pass, $false if any fail.
+    .PARAMETER ResultsValidation
+        A hashtable of validation rule names and their parameters.
+    .PARAMETER JobResults
+        The output received from the job to validate.
+    .PARAMETER JobName
+        The name of the job being validated. Used in log entries.
+    .EXAMPLE
+        PS C:\> Test-JSMJobResult -ResultsValidation @{ValidateType=[array];ValidateElementCountExpression='-gt 0'} -JobResults $results -JobName 'GetUsers'
+
+        Returns $true if $results is an array with at least one element.
+    .OUTPUTS
+        [bool]
+    #>
     [cmdletbinding()]
     param
     (

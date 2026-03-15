@@ -2,7 +2,7 @@ function Get-JSMProcessingStatusEntry
 {
     <#
     .SYNOPSIS
-        Gets entries from the module scope array variablle JSMProcessingLoopStatus
+        Gets entries from the module scope array variable JSMProcessingLoopStatus
     .DESCRIPTION
         Gets all entries or specified entries (by JobName or EntryID) from the module scope array variable JSMProcessingLoopStatus
     .EXAMPLE

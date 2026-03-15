@@ -1,5 +1,28 @@
 function Get-JSMJobRequired
 {
+    <#
+    .SYNOPSIS
+        Filters a job definition set to those required given the specified conditions.
+    .DESCRIPTION
+        Returns only the job definitions whose OnCondition and OnNotCondition requirements
+        are satisfied by the provided Condition hashtable. If no Condition is provided, all
+        job definitions are returned. Returns $null (with a warning) if no jobs qualify.
+    .PARAMETER Condition
+        A hashtable of condition name/value pairs used to evaluate OnCondition and OnNotCondition
+        properties on job definitions.
+    .PARAMETER JobDefinition
+        The full array of job definition objects to filter.
+    .EXAMPLE
+        PS C:\> Get-JSMJobRequired -JobDefinition $allJobs
+
+        Returns all job definitions (no condition filtering).
+    .EXAMPLE
+        PS C:\> Get-JSMJobRequired -JobDefinition $allJobs -Condition @{IncludeOptionalStep=$true}
+
+        Returns only job definitions whose conditions are satisfied by the provided hashtable.
+    .OUTPUTS
+        [pscustomobject[]] filtered job definitions, or $null if none qualify.
+    #>
     [cmdletbinding()]
     param
     (

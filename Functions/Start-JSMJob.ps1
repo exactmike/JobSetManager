@@ -1,8 +1,31 @@
 Function Start-JSMJob
 {
+    <#
+    .SYNOPSIS
+        Starts one or more JobSetManager-defined jobs using native PowerShell job engines.
+    .DESCRIPTION
+        Starts jobs defined as PSCustomObjects using Start-Job or Start-ThreadJob. Handles
+        pre-job commands, argument list resolution, FunctionsToLoad/ModulesToImport conversion
+        to InitializationScript, and split-job tracking via $script:SplitJobGroups. Records
+        a job attempt entry for each job started.
+    .PARAMETER Job
+        One or more job definition objects (PSCustomObject) to start.
+    .PARAMETER JobType
+        The job engine to use. PSJob uses Start-Job; ThreadJob uses Start-ThreadJob.
+        Defaults to PSJob. Invoke-JSMProcessingLoop auto-detects and passes this value.
+    .EXAMPLE
+        PS C:\> Start-JSMJob -Job $jobDefinitions -JobType PSJob
+
+        Starts each job definition using Start-Job.
+    .OUTPUTS
+        [hashtable] with keys SuccessStartJobs and FailedStartJobs.
+    #>
     [CmdletBinding()]
     param(
         [psobject[]]$Job
+        ,
+        [ValidateSet('PSJob','ThreadJob')]
+        [string]$JobType = 'PSJob'
     )
     foreach ($j in $Job)
     {
@@ -18,7 +41,7 @@ Function Start-JSMJob
         $PreviousAttempts = @(Get-JSMJobAttempt -JobName $j.name)
         $ThisAttemptNo = $($PreviousAttempts.Attempt | Sort-Object -Descending | Select-Object -First 1 -Unique) + 1
         Write-Verbose -Message "$($j.name) Starting Attempt $ThisAttemptNo"
-        $ThisAttempt = Add-JSMJobAttempt -JobName $j.name -JobType RSJob -Attempt $ThisAttemptNo
+        $ThisAttempt = Add-JSMJobAttempt -JobName $j.name -JobType $JobType -Attempt $ThisAttemptNo
         #Run the PreJobCommands
         if ([string]::IsNullOrWhiteSpace($j.PreJobCommands) -eq $false)
         {
@@ -48,17 +71,17 @@ Function Start-JSMJob
                 continue nextJobToStart
             }
         }
-        #Prepare the Start-RSJob Parameters
-        $StartRSJobParams = $j.StartRSJobParams
-        $StartRSJobParams.Name = $j.Name
-        #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartRSJobParameters property)
+        #Prepare the Start-Job Parameters
+        $StartJobParams = $j.StartJobParams.Clone()
+        $StartJobParams.Name = $j.Name
+        #add values for variable names listed in the argumentlist property of the Defined Job (if it is not already in the StartJobParameters property)
         if ($j.ArgumentList.count -ge 1)
         {
             $message1 = "$($j.Name): Process Argument List"
             Write-Verbose -Message $message1
             try
             {
-                $StartRSJobParams.ArgumentList = @(
+                $StartJobParams.ArgumentList = @(
                     foreach ($a in $j.ArgumentList)
                     {
                         $message = "$($j.Name): Get Argument List Variable $a"
@@ -81,11 +104,46 @@ Function Start-JSMJob
                 continue nextJobToStart
             }
         }
+        #Build InitializationScript from FunctionsToLoad and ModulesToImport
+        $initParts = @()
+        if ($StartJobParams.ContainsKey('FunctionsToLoad') -and $StartJobParams.FunctionsToLoad.Count -gt 0)
+        {
+            foreach ($func in $StartJobParams.FunctionsToLoad)
+            {
+                $funcCmd = Get-Command $func -ErrorAction SilentlyContinue
+                if ($null -ne $funcCmd)
+                {
+                    $initParts += "function $func {`n$($funcCmd.ScriptBlock)`n}"
+                }
+            }
+            $StartJobParams.Remove('FunctionsToLoad')
+        }
+        if ($StartJobParams.ContainsKey('ModulesToImport') -and $StartJobParams.ModulesToImport.Count -gt 0)
+        {
+            foreach ($mod in $StartJobParams.ModulesToImport)
+            {
+                $initParts += "Import-Module '$mod' -ErrorAction Stop"
+            }
+            $StartJobParams.Remove('ModulesToImport')
+        }
+        if ($StartJobParams.ContainsKey('PSSnapinsToImport'))
+        {
+            $StartJobParams.Remove('PSSnapinsToImport')
+        }
+        if ($initParts.Count -gt 0)
+        {
+            $StartJobParams.InitializationScript = [scriptblock]::Create($initParts -join "`n")
+        }
+        #Extract ThrottleLimit if specified (used for ThreadJob split jobs)
+        $ThrottleLimit = $j.JobSplit
+        if ($StartJobParams.ContainsKey('Throttle'))
+        {
+            $ThrottleLimit = $StartJobParams.Throttle
+            $StartJobParams.Remove('Throttle')
+        }
         #if the job definition calls for splitting the workload among multiple jobs
         if ($j.JobSplit -gt 1)
         {
-            $StartRSJobParams.Throttle = $j.JobSplit
-            $StartRSJobParams.Batch = $j.Name
             try
             {
                 $message = "$($j.Name): Get Data to Split Source Variable $($j.jobsplitDataVariableName)"
@@ -125,15 +183,30 @@ Function Start-JSMJob
                 continue nextJobToStart
             }
             $splitjobcount = 0
+            $subJobNames = [System.Collections.Generic.List[string]]::new()
             foreach ($split in $splitGroups)
             {
                 $splitjobcount++
                 $YourSplitData = $DataToSplit[$($split.start)..$($split.end)]
+                $SplitJobName = "$($j.Name)_JSMPart_$splitjobcount"
+                $subJobNames.Add($SplitJobName)
+                $SplitStartJobParams = $StartJobParams.Clone()
+                $SplitStartJobParams.Name = $SplitJobName
                 try
                 {
-                    $message = "$($j.Name): Start Split Job $splitjobcount of $($j.JobSplit)"
+                    $message = "$($j.Name): Start Split Job $splitjobcount of $($j.JobSplit) as $SplitJobName"
                     Write-Verbose -Message $message
-                    Start-RSJob @StartRSJobParams | Out-Null
+                    switch ($JobType)
+                    {
+                        'ThreadJob'
+                        {
+                            Start-ThreadJob @SplitStartJobParams -ThrottleLimit $ThrottleLimit | Out-Null
+                        }
+                        default
+                        {
+                            Start-Job @SplitStartJobParams | Out-Null
+                        }
+                    }
                     Write-Verbose -Message $message
                     Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
                 }
@@ -149,6 +222,7 @@ Function Start-JSMJob
                     continue nextJobToStart
                 }
             }
+            $script:SplitJobGroups[$j.Name] = @($subJobNames)
             $SuccessStartJobs.add($j)
         }
         #otherwise just start one job
@@ -158,7 +232,17 @@ Function Start-JSMJob
             {
                 $message = "$($j.Name): Start Job"
                 Write-Verbose -Message $message
-                Start-RSJob @StartRSJobParams | Out-Null
+                switch ($JobType)
+                {
+                    'ThreadJob'
+                    {
+                        Start-ThreadJob @StartJobParams | Out-Null
+                    }
+                    default
+                    {
+                        Start-Job @StartJobParams | Out-Null
+                    }
+                }
                 Write-Verbose -Message $message
                 Add-JSMProcessingStatusEntry -Job $j.name -Message $message -Status $true -EventID 318
                 $SuccessStartJobs.add($j)
@@ -175,7 +259,6 @@ Function Start-JSMJob
                 continue nextJobToStart
             }
         }
-        #$j | Add-Member -MemberType NoteProperty -Name StartTime -Value (Get-Date) -Force
     }
     if ($FailedStartJobs.count -ge 1)
     {

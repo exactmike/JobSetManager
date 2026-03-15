@@ -1,20 +1,18 @@
 [pscustomobject]@{
-    Name = 'ConvertADUsersToCustomUserObjects' #also gets added to StartRSJobParams as Name at runtime
+    Name = 'ConvertADUsersToCustomUserObjects' #also gets added to StartJobParams as Name at runtime
     Message = 'Convert AD Users to Custom User Objects' #not used anywhere, yet...
     PreJobCommands = [ScriptBlock]{} #run before the job is called. Runs in the control runspace . . .
     JobSplit = 4 #how many jobs you want to run for your data, if 1, this is ignored
     JobSplitDataVariableName = 'ADUsers' #the data to split among the jobsplit jobs. if JobsSplit is 1, this is ignored
-    ArgumentList='' #you can add arguments here instead of in the StartRSJobParams.  Difference is, here it is an array of strings, evaluated at job start time for matchinv variables.
-    StartRSJobParams = @{
-        ErrorAction = 'Stop'  #optional, recommended to stop
+    ArgumentList=@() #you can add arguments here instead of in StartJobParams as an array of variable names evaluated at job start time
+    StartJobParams = @{
         FunctionsToLoad = @('Convert-ADUserToCustomUserObject','Convert-ProxyAddressToCustomAlias','Get-AdObjectDomain','Test-IDAvailability','Test-ProxyAddressAvailability')
-        ModulesToImport = @() #optional
-        PSSnapinsToImport = @()
-        ArgumentList = $decoystring,$TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound #due to a bug in poshRSJob, first argument may be lost, these must exist when the job metadata object is created or they will be NULL
-        Throttle = 5 #optional
+        ModulesToImport = @() #optional: module names to import in the job runspace
+        # PSSnapinsToImport is no longer supported (PS 7 incompatible). Use ModulesToImport instead.
+        ArgumentList = @($TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound)
         ScriptBlock = [ScriptBlock]{ #scriptblock for the job to run
-            param($TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound)#note first argument is not referenced
-            $Settings = $using:Settings #you can use arguments with param() block along with $using:
+            param($TestForDuplicateID,$DuplicateIDFound,$TestForDuplicateProxyAddress,$DuplicateProxyAddressFound)
+            $Settings = $using:Settings #you can use $using: to pass variables from the calling scope
             $ADUsers = $using:YourSplitData | Select-Object -Property *
             $ConvertADUsersToCustomUserObjectParams = @{
                 ADUser = $ADUsers

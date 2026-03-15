@@ -18,4 +18,8 @@ function Initialize-TrackingVariable
     {
       $script:JobFailures = @{}
     }
+    if ($true -ne (Test-Path variable:Script:SplitJobGroups))
+    {
+      $script:SplitJobGroups = @{}
+    }
 }

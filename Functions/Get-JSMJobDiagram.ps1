@@ -10,10 +10,18 @@ function Get-JSMJobDiagram
 
     begin
     {
+        if (-not (Get-Command 'graph' -ErrorAction SilentlyContinue))
+        {
+            Write-Warning "Get-JSMJobDiagram requires the PSGraph module. Install with: Install-Module PSGraph"
+            $script:PSGraphMissing = $true
+            return
+        }
+        $script:PSGraphMissing = $false
     }
 
     process
     {
+        if ($script:PSGraphMissing) { return }
         foreach ($j in $Job)
         {
             graph job {

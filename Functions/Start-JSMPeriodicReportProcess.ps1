@@ -93,6 +93,8 @@ $($script:JSMProcessingLoopStatus | ConvertTo-Html)
         {
             $SendMailMessageParams.UseSSL = $true
         }
+        # Note: Send-MailMessage is deprecated in PS 7.x and emits a deprecation warning.
+        # It remains functional on all platforms but may be removed in a future PS release.
         Send-MailMessage @SendMailMessageParams
     }
 }

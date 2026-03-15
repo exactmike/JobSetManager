@@ -1,34 +1,41 @@
-#$Script:ModuleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-#$Script:ModuleName = $Script:ModuleName = Get-ChildItem $ModuleRoot\*\*.psm1 | Select-object -ExpandProperty BaseName
 $ModuleName = 'JobSetManager'
 
 Describe "Public commands have comment-based or external help" -Tags 'Build' {
-    $functions = Get-Command -Module $ModuleName
-    $help = foreach ($function in $functions) {
-        Get-Help -Name $function.Name
+    BeforeAll {
+        $functions = Get-Command -Module $ModuleName
+        $help = foreach ($function in $functions) {
+            Get-Help -Name $function.Name
+        }
     }
 
-    foreach ($node in $help)
-    {
-        Context $node.Name {
-            It "Should have a Description or Synopsis" {
-                ($node.Description + $node.Synopsis) | Should Not BeNullOrEmpty
-            }
+    It "Should have a Description or Synopsis for [<Name>]" -ForEach @(
+        (Get-Command -Module $ModuleName) | ForEach-Object { @{ Name = $_.Name } }
+    ) {
+        $node = Get-Help -Name $Name
+        ($node.Description | Out-String) + ($node.Synopsis | Out-String) | Should -Not -BeNullOrEmpty
+    }
 
-            It "Should have an Example"  {
-                $node.Examples | Should Not BeNullOrEmpty
-                $node.Examples | Out-String | Should -Match ($node.Name)
-            }
+    It "Should have an Example for [<Name>]" -ForEach @(
+        (Get-Command -Module $ModuleName) | ForEach-Object { @{ Name = $_.Name } }
+    ) {
+        $node = Get-Help -Name $Name
+        $node.Examples | Should -Not -BeNullOrEmpty
+        $node.Examples | Out-String | Should -Match $Name
+    }
 
+    It "Parameter [<ParameterName>] of [<CommandName>] should have a description" -ForEach @(
+        (Get-Command -Module $ModuleName) | ForEach-Object {
+            $cmdName = $_.Name
+            $node = Get-Help -Name $cmdName
             foreach ($parameter in $node.Parameters.Parameter)
             {
-                if ($parameter -notmatch 'WhatIf|Confirm')
+                if ($parameter.Name -notmatch 'WhatIf|Confirm')
                 {
-                    It "Should have a Description for Parameter [$($parameter.Name)]" {
-                        $parameter.Description.Text | Should Not BeNullOrEmpty
-                    }
+                    @{ CommandName = $cmdName; ParameterName = $parameter.Name; Parameter = $parameter }
                 }
             }
         }
+    ) {
+        $Parameter.Description.Text | Should -Not -BeNullOrEmpty
     }
 }

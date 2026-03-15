@@ -1,5 +1,49 @@
 function Invoke-JSMProcessingLoop
 {
+    <#
+    .SYNOPSIS
+        Runs the main job orchestration loop for a set of interdependent jobs.
+    .DESCRIPTION
+        Manages the full lifecycle of a job set: resolves dependencies, starts eligible jobs,
+        receives and validates completed jobs, handles failures with retry logic, and loops
+        until all jobs complete or a fatal failure occurs. Supports both Start-Job (PSJob) and
+        Start-ThreadJob (ThreadJob) engines with auto-detection.
+    .PARAMETER Condition
+        A hashtable of condition name/value pairs used to filter job definitions via OnCondition
+        and OnNotCondition. Aliased as 'Settings' for backward compatibility.
+    .PARAMETER JobDefinition
+        The array of job definition objects that make up the job set.
+    .PARAMETER SleepSecondsBetweenJobCheck
+        Seconds to sleep between loop iterations. Valid range: 5-60. Default: 20.
+    .PARAMETER Interactive
+        When specified, prints verbose progress output each loop iteration.
+    .PARAMETER RestartStopwatch
+        When specified, restarts the internal stopwatch even if it is already running.
+    .PARAMETER LoopOnce
+        When specified, runs only one iteration of the loop and exits.
+    .PARAMETER JobFailureRetryLimit
+        Global maximum number of retry attempts per job. Default: 3.
+    .PARAMETER PeriodicReport
+        When specified, calls Start-JSMPeriodicReportProcess each iteration.
+    .PARAMETER PeriodicReportSetting
+        Settings object created by Set-JSMPeriodicReportSetting.
+    .PARAMETER IgnoreFatalFailure
+        When specified, continues looping even after a fatal failure is detected.
+    .PARAMETER SuppressVariableRemoval
+        When specified, skips removal of variables listed in job RemoveVariablesAtCompletion.
+    .PARAMETER JobType
+        Job engine: PSJob (Start-Job) or ThreadJob (Start-ThreadJob). Auto-detected if not specified.
+    .EXAMPLE
+        PS C:\> Invoke-JSMProcessingLoop -JobDefinition $jobs -Interactive
+
+        Runs the job set with verbose interactive output. Auto-detects job engine.
+    .EXAMPLE
+        PS C:\> Invoke-JSMProcessingLoop -JobDefinition $jobs -JobType PSJob -JobFailureRetryLimit 5
+
+        Runs with Start-Job and allows up to 5 retries per job.
+    .OUTPUTS
+        [bool] $true if all jobs completed without fatal failure, $false otherwise.
+    #>
     [cmdletbinding()]
     param
     (
@@ -30,13 +74,30 @@ function Invoke-JSMProcessingLoop
         [switch]$IgnoreFatalFailure
         ,
         [switch]$SuppressVariableRemoval
+        ,
+        # Job engine type. Defaults to ThreadJob if Start-ThreadJob is available, otherwise PSJob.
+        [ValidateSet('PSJob','ThreadJob')]
+        [string]$JobType
     )
+    # Auto-detect JobType if not specified
+    if (-not $PSBoundParameters.ContainsKey('JobType'))
+    {
+        if ($null -ne (Get-Command 'Start-ThreadJob' -ErrorAction SilentlyContinue))
+        {
+            $JobType = 'ThreadJob'
+        }
+        else
+        {
+            $JobType = 'PSJob'
+        }
+        Write-Verbose -Message "Invoke-JSMProcessingLoop: Auto-detected JobType: $JobType"
+    }
     ##################################################################
     #Get the Required Jobs from the JobDefinitions
     ##################################################################
     try
     {
-        $message = 'Invoke-JobProcessingLoop: Get-RequiredJob'
+        $message = 'Invoke-JSMProcessingLoop: Get-JSMJobRequired'
         Write-Verbose -Message $message
         $GRJParams = @{
             JobDefinition = $JobDefinition
@@ -59,7 +120,14 @@ function Invoke-JSMProcessingLoop
     ##################################################################
     #Prep for Jobs Loop
     ##################################################################
-    Start-JSMStopwatch
+    if ($RestartStopwatch)
+    {
+        Start-JSMStopwatch -Restart
+    }
+    else
+    {
+        Start-JSMStopwatch
+    }
     Initialize-TrackingVariable
     ##################################################################
     #Loop to manage Jobs to successful completion or gracefully handled failure
@@ -72,6 +140,34 @@ function Invoke-JSMProcessingLoop
         $JobCompletions = Get-JSMJobCompletion
         $JobFailures = Get-JSMJobFailure
         $JobCurrent = Get-JSMJobCurrent -JobRequired $JobRequired -JobCompletion $JobCompletions
+        #Detect stale job attempts (tracked as active but not found in the job engine)
+        $ActiveAttempts = @(Get-JSMJobAttempt -Active $true -StopType 'None')
+        $NativeJobNames = @(Get-Job).Name
+        $StaleJobFailures = @()
+        foreach ($attempt in $ActiveAttempts)
+        {
+            $jobName = $attempt.JobName
+            if ($jobName -in $JobCompletions.Keys -or $jobName -in $JobCurrent.Keys) { continue }
+            $isStale = $true
+            if ($null -ne $script:SplitJobGroups -and $script:SplitJobGroups.ContainsKey($jobName))
+            {
+                $subNames = $script:SplitJobGroups[$jobName]
+                if ($NativeJobNames | Where-Object { $_ -in $subNames }) { $isStale = $false }
+            }
+            if ($isStale)
+            {
+                $staleMessage = "$jobName : Active job attempt found but job is missing from the job engine. Flagging as stale failure."
+                Write-Warning -Message $staleMessage
+                Add-JSMProcessingStatusEntry -Job $jobName -Message $staleMessage -Status $false -EventID 520
+                Set-JSMJobAttempt -Attempt $attempt.Attempt -JobName $jobName -StopType Fail
+                $staleJobDef = $JobRequired | Where-Object { $_.Name -eq $jobName } | Select-Object -First 1
+                if ($null -ne $staleJobDef)
+                {
+                    Add-JSMJobFailure -Name $jobName -FailureType 'StaleJob' -Attempt $attempt
+                    $StaleJobFailures += $staleJobDef | Select-Object -Property *,@{n='FailureType';e={'StaleJob'}}
+                }
+            }
+        }
         #Check for jobs that meet their start criteria
         $JobsToStart = @(Get-JSMJobNext -JobCompletion $JobCompletions -JobCurrent $JobCurrent -JobRequired $JobRequired -JobFailure $JobFailures -JobFailureRetryLimit $JobFailureRetryLimit)
         $StartJobSuccesses,$StartJobFailures  = $null
@@ -79,7 +175,7 @@ function Invoke-JSMProcessingLoop
         {
             $message = "Found $($JobsToStart.Count) Jobs To Start. Submitting to Start-JSMJob."
             Write-Verbose -message $message
-            $StartResult = Start-JSMJob -Job $JobsToStart
+            $StartResult = Start-JSMJob -Job $JobsToStart -JobType $JobType
             $StartJobSuccesses = $StartResult.SuccessStartJobs
             $StartJobFailures = $StartResult.FailedStartJobs
         }#end if
@@ -97,6 +193,10 @@ function Invoke-JSMProcessingLoop
         {
             $NewJobFailures += $StartJobFailures
         }
+        if ($StaleJobFailures.Count -ge 1)
+        {
+            $NewJobFailures += $StaleJobFailures
+        }
         #move NewlyFailed handling out to discrete function soon - 20190127
         if ($NewJobFailures.count -ge 1)
         {
@@ -104,9 +204,7 @@ function Invoke-JSMProcessingLoop
             Write-Verbose -message $message
             $FatalFailure = Start-JSMJobFailureProcess -NewJobFailure $NewJobFailures -JobFailureRetryLimit $JobFailureRetryLimit
         }
-        #$JobCompletions = Get-JSMJobCompletion
         $JobCurrent = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired
-        #$JobFailures = Get-JSMJobFailure
         $JobPending = Get-JSMJobPending -JobRequired $JobRequired
         if ($true -eq $PeriodicReport -or $true -eq $Interactive)
         {

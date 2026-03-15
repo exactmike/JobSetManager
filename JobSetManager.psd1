@@ -12,7 +12,7 @@
 RootModule = 'JobSetManager.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.3.2'
+ModuleVersion = '1.0.0'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop','Core')
@@ -27,13 +27,13 @@ Author = 'Mike Campbell'
 CompanyName = 'Exact Solutions'
 
 # Copyright statement for this module
-Copyright = '2019'
+Copyright = '2019-2025'
 
 # Description of the functionality provided by this module
-Description = 'add on module for poshrsjob, ThreadJob, or BackgroundJobs to manage complex interdependent Jobs'
+Description = 'Orchestrates sets of interdependent PowerShell background jobs with dependency resolution, retry logic, and result validation. Supports Start-Job and Start-ThreadJob.'
 
 # Minimum version of the Windows PowerShell engine required by this module
-# PowerShellVersion = ''
+PowerShellVersion = '5.1'
 
 # Name of the Windows PowerShell host required by this module
 # PowerShellHostName = ''
@@ -76,7 +76,7 @@ FunctionsToExport = @(
     'Add-JSMProcessingStatusEntry'
     'Clear-JSMJobAttempt'
     'Clear-JSMJobCompletion'
-    'Clear-JSMFailedJob'
+    'Clear-JSMJobFailure'
     'Clear-JSMProcessingStatusEntry'
     'Get-JSMJobAttempt'
     'Get-JSMJobCompletion'
@@ -97,7 +97,7 @@ FunctionsToExport = @(
     'Start-JSMNewJobCompletionProcess'
     'Start-JSMPeriodicReportProcess'
     'Remove-JSMJobCompletion'
-    'Remove-JSMFailedJob'
+    'Remove-JSMJobFailure'
     'Remove-JSMVariable'
     'Set-JSMJobAttempt'
     'Set-JSMPeriodicReportSetting'
@@ -133,7 +133,7 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        # Tags = @()
+        Tags = @('Jobs','Orchestration','Parallel','Workflow','Background','ThreadJob')
 
         # A URL to the license for this module.
         # LicenseUri = ''
@@ -145,7 +145,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        # ReleaseNotes = ''
+        ReleaseNotes = 'v1.0.0: Removed PoshRSJob dependency; native Start-Job and Start-ThreadJob support. Renamed StartRSJobParams to StartJobParams in job definitions. Added JobType parameter to Invoke-JSMProcessingLoop with auto-detection. Added SplitJobGroups tracking for split jobs. Fixed Set-JSMPeriodicReportSetting idempotency. Fixed RestartStopwatch parameter. Added PSGraph dependency guards. Modernized tests to Pester v5.'
 
     } # End of PSData hashtable
 
