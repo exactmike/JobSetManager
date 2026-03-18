@@ -42,15 +42,44 @@ Describe "$CommandName Tests" -Tag 'UnitTests' {
     }
 
     Context "ValidateElementCountExpression validation" {
-        It "Returns true when count expression matches" {
+        It "Returns true when count expression matches (-gt)" {
             $result = @(1,2,3)
             Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-gt 2'} -JobResults $result -JobName 'TestJob' |
                 Should -Be $true
         }
-        It "Returns false when count expression does not match" {
+        It "Returns false when count expression does not match (-gt)" {
             $result = @(1)
             Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-gt 2'} -JobResults $result -JobName 'TestJob' |
                 Should -Be $false
+        }
+        It "Returns true for -eq operator" {
+            $result = @(1,2)
+            Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-eq 2'} -JobResults $result -JobName 'TestJob' |
+                Should -Be $true
+        }
+        It "Returns true for -ne operator" {
+            $result = @(1,2)
+            Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-ne 5'} -JobResults $result -JobName 'TestJob' |
+                Should -Be $true
+        }
+        It "Returns true for -ge operator" {
+            $result = @(1,2)
+            Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-ge 2'} -JobResults $result -JobName 'TestJob' |
+                Should -Be $true
+        }
+        It "Returns true for -lt operator" {
+            $result = @(1)
+            Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-lt 3'} -JobResults $result -JobName 'TestJob' |
+                Should -Be $true
+        }
+        It "Returns true for -le operator" {
+            $result = @(1,2)
+            Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-le 2'} -JobResults $result -JobName 'TestJob' |
+                Should -Be $true
+        }
+        It "Throws for an unsupported operator" {
+            { Test-JSMJobResult -ResultsValidation @{ValidateElementCountExpression='-contains 2'} -JobResults @(1,2) -JobName 'TestJob' } |
+                Should -Throw "*unsupported operator*"
         }
     }
 

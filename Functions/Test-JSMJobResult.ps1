@@ -125,7 +125,20 @@ function Test-JSMJobResult
                 {
                     $message = "$JobName : Validation ValidateElementCountExpression ($($ResultsValidation.ValidateElementCountExpression))"
                     Write-Verbose -Message $message
-                    $Result = Invoke-Expression "$($JobResults.count) $($ResultsValidation.ValidateElementCountExpression)"
+                    $exprParts = $ResultsValidation.ValidateElementCountExpression -split '\s+', 2
+                    $exprOperator = $exprParts[0]
+                    $exprOperand = [int]$exprParts[1]
+                    $actualCount = $JobResults.count
+                    $Result = switch ($exprOperator)
+                    {
+                        '-eq' { $actualCount -eq $exprOperand }
+                        '-ne' { $actualCount -ne $exprOperand }
+                        '-gt' { $actualCount -gt $exprOperand }
+                        '-ge' { $actualCount -ge $exprOperand }
+                        '-lt' { $actualCount -lt $exprOperand }
+                        '-le' { $actualCount -le $exprOperand }
+                        default { throw "ValidateElementCountExpression: unsupported operator '$exprOperator'" }
+                    }
                     if ($Result -eq $true)
                     {
                         $message = "$JobName : Validation ValidateElementCountExpression ($($ResultsValidation.ValidateElementCountExpression)). Result Count: $($JobResults.count)"
