@@ -80,7 +80,7 @@ Items discovered during code review. Each entry includes the source location and
 
 ---
 
-### 10. Replace `Invoke-Expression` in `Test-JSMJobResult`
+### 10. Replace `Invoke-Expression` in `Test-JSMJobResult` - done
 **File:** `Functions/Test-JSMJobResult.ps1` (line 128)
 **Status:** Working but flagged by PSScriptAnalyzer (`PSAvoidUsingInvokeExpression`).
 **Code:**
@@ -92,7 +92,7 @@ $Result = Invoke-Expression "$($JobResults.count) $($ResultsValidation.ValidateE
 
 ---
 
-### 11. Investigate commented-out `$failedJobs` filter in `Get-JSMJobPending`
+### 11. Investigate commented-out `$failedJobs` filter in `Get-JSMJobPending` - done
 **File:** `Functions/Get-JSMJobPending.ps1` (lines 24–28)
 **Status:** `$failedJobs = Get-JSMJobFailure` is called but its only usage is commented out.
 **Code:**
