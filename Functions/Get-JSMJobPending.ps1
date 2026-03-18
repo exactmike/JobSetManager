@@ -7,7 +7,7 @@ function Get-JSMJobPending
         Determines which jobs are pending by excluding currently running and already-completed
         jobs from the required job list. Returns a hashtable keyed by job name.
     .PARAMETER JobRequired
-        The array of required job definition objects to evaluate.
+        Hashtable of required job definition objects keyed by job name.
     .OUTPUTS
         [hashtable]
     .EXAMPLE
@@ -17,15 +17,13 @@ function Get-JSMJobPending
     #>
     [cmdletbinding()]
     param(
-        $JobRequired
+        [hashtable]$JobRequired
     )
     $jobCompletions = Get-JSMJobCompletion
     $currentJobs = Get-JSMJobCurrent -JobRequired $JobRequired -JobCompletion $jobCompletions
-    $failedJobs = Get-JSMJobFailure
-    $Pending = $JobRequired | Where-object {
+    $Pending = $JobRequired.Values | Where-object {
         $_.Name -notin $jobCompletions.Keys -and
-        $_.Name -notin $currentJobs.Name #-and
-        #$_.Name -notin $failedJobs.Keys
+        $_.Name -notin $currentJobs.Keys
     }
     $pendingJobs = @{}
     foreach ($p in $Pending) {$pendingJobs.$($p.name) = $true}

@@ -21,14 +21,14 @@ function Get-JSMJobCurrent
     [cmdletbinding()]
     param(
         [parameter(Mandatory)]
-        [psobject[]]$JobRequired
+        [hashtable]$JobRequired
         ,
         [parameter(Mandatory)]
         [hashtable]$JobCompletion
     )
     $NativeJobs = @(Get-Job)
     $CurrentJobs = @{}
-    foreach ($jr in $JobRequired)
+    foreach ($jr in $JobRequired.Values)
     {
         if ($jr.Name -in $JobCompletion.Keys) { continue }
         # Check direct name match (regular jobs)

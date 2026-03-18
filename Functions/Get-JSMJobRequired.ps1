@@ -21,7 +21,7 @@ function Get-JSMJobRequired
 
         Returns only job definitions whose conditions are satisfied by the provided hashtable.
     .OUTPUTS
-        [pscustomobject[]] filtered job definitions, or $null if none qualify.
+        [hashtable] job definitions keyed by job name, or $null if none qualify.
     #>
     [cmdletbinding()]
     param
@@ -41,7 +41,8 @@ function Get-JSMJobRequired
     else {
         $RequiredJobFilter = [scriptblock] {$true}
     }
-    $RequiredJobs = @($JobDefinition | Where-Object -FilterScript $RequiredJobFilter)
+    $RequiredJobs = @{}
+    $JobDefinition | Where-Object -FilterScript $RequiredJobFilter | ForEach-Object { $RequiredJobs[$_.Name] = $_ }
     if ($RequiredJobs.Count -eq 0)
     {
         $message = "Get-RequiredJob: No Required Jobs Found"
@@ -51,7 +52,7 @@ function Get-JSMJobRequired
     }
     else
     {
-        $message = "Get-RequiredJob: Found $($RequiredJobs.Count) RequiredJobs as follows: $($RequiredJobs.Name -join ', ')"
+        $message = "Get-RequiredJob: Found $($RequiredJobs.Count) RequiredJobs as follows: $($RequiredJobs.Keys -join ', ')"
         Write-Verbose -Message $message
         Add-JSMProcessingStatusEntry -JobName 'RequiredJobs' -Message $message -Status $true -EventID 102
         $RequiredJobs

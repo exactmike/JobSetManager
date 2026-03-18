@@ -17,7 +17,7 @@ Describe "$CommandName Tests" -Tag 'UnitTests' {
             DependsOnJobs        = @()
             JobFailureRetryLimit = 0
         }
-        $AllJobs = @($JobDef1, $JobDef2, $JobDef3)
+        $AllJobs = @{Job1=$JobDef1; Job2=$JobDef2; Job3=$JobDef3}
     }
 
     Context "Dependency resolution" {

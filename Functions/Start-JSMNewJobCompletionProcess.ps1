@@ -28,13 +28,13 @@ function Start-JSMNewJobCompletionProcess
         [hashtable]$JobCompletion
         ,
         [parameter(Mandatory)]
-        [psobject[]]$JobRequired
+        [hashtable]$JobRequired
         ,
         [switch]$SuppressVariableRemoval
     )
     # Find job definitions that have newly completed underlying jobs
     $PotentialNewJobCompletions = @(
-        :nextDefinedJob foreach ($jr in $JobRequired)
+        :nextDefinedJob foreach ($jr in $JobRequired.Values)
         {
             if ($jr.Name -in $JobCompletion.Keys) { continue nextDefinedJob }
             if ($jr.JobSplit -gt 1)

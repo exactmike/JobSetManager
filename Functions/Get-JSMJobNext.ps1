@@ -37,13 +37,13 @@ function Get-JSMJobNext
         [hashtable]$JobFailure
         ,
         [parameter(Mandatory)]
-        [psobject[]]$JobRequired
+        [hashtable]$JobRequired
         ,
         [parameter()]
         [int]$JobFailureRetryLimit
     )
     $JobsToStart = @(
-        foreach ($j in $JobRequired)
+        foreach ($j in $JobRequired.Values)
         {
             $JobFailureRetryLimitForThisJob = [math]::Max($j.JobFailureRetryLimit,$JobFailureRetryLimit)
             if (

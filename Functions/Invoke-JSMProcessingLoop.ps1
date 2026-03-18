@@ -143,7 +143,7 @@ function Invoke-JSMProcessingLoop
         #Detect stale job attempts (tracked as active but not found in the job engine)
         $ActiveAttempts = @(Get-JSMJobAttempt -Active $true -StopType 'None')
         $NativeJobNames = @(Get-Job).Name
-        $StaleJobFailures = @()
+        $StaleJobFailures = [System.Collections.Generic.List[psobject]]::new()
         foreach ($attempt in $ActiveAttempts)
         {
             $jobName = $attempt.JobName
@@ -160,11 +160,11 @@ function Invoke-JSMProcessingLoop
                 Write-Warning -Message $staleMessage
                 Add-JSMProcessingStatusEntry -Job $jobName -Message $staleMessage -Status $false -EventID 520
                 Set-JSMJobAttempt -Attempt $attempt.Attempt -JobName $jobName -StopType Fail
-                $staleJobDef = $JobRequired | Where-Object { $_.Name -eq $jobName } | Select-Object -First 1
+                $staleJobDef = $JobRequired[$jobName]
                 if ($null -ne $staleJobDef)
                 {
                     Add-JSMJobFailure -Name $jobName -FailureType 'StaleJob' -Attempt $attempt
-                    $StaleJobFailures += $staleJobDef | Select-Object -Property *,@{n='FailureType';e={'StaleJob'}}
+                    $StaleJobFailures.add($($staleJobDef | Select-Object -Property *,@{n='FailureType';e={'StaleJob'}}))
                 }
             }
         }
@@ -186,24 +186,13 @@ function Invoke-JSMProcessingLoop
             JobCompletion = $JobCompletions
             JobRequired = $JobRequired
         }
-        $NewJobFailures = $null
         if ($true -eq $SuppressVariableRemoval) {$SNCJPParams.SuppressVariableRemoval = $true}
-        $NewJobFailures = @(Start-JSMNewJobCompletionProcess @SNCJPParams)
-        if ($null -ne $StartJobFailures -and $StartJobFailures.count -ge 1)
-        {
-            $NewJobFailures += $StartJobFailures
-        }
-        if ($StaleJobFailures.Count -ge 1)
-        {
-            $NewJobFailures += $StaleJobFailures
-        }
-        #move NewlyFailed handling out to discrete function soon - 20190127
-        if ($NewJobFailures.count -ge 1)
-        {
-            $message = "Found $($NewJobFailures.Count) New Job Failure(s). Submitting to Start-JSMJobFailureProcess."
-            Write-Verbose -message $message
-            $FatalFailure = Start-JSMJobFailureProcess -NewJobFailure $NewJobFailures -JobFailureRetryLimit $JobFailureRetryLimit
-        }
+        $CompletionFailures = @(Start-JSMNewJobCompletionProcess @SNCJPParams)
+        $FatalFailure = Start-JSMNewJobFailureProcess `
+            -CompletionFailures $CompletionFailures `
+            -StartJobFailures $StartJobFailures `
+            -StaleJobFailures $StaleJobFailures `
+            -JobFailureRetryLimit $JobFailureRetryLimit
         $JobCurrent = Get-JSMJobCurrent -JobCompletion $JobCompletions -JobRequired $JobRequired
         $JobPending = Get-JSMJobPending -JobRequired $JobRequired
         if ($true -eq $PeriodicReport -or $true -eq $Interactive)
@@ -234,7 +223,7 @@ function Invoke-JSMProcessingLoop
             }
         }
         else
-        {   #add a check here for situation all jobs completed and skip if so
+        {   # check here for situation all jobs completed and skip the interactive and sleep if so
             if ($JobCurrent.count -eq 0 -and $JobPending.count -eq 0)
             {
                 Write-Verbose -message "Job Processing Complete"
@@ -249,6 +238,6 @@ function Invoke-JSMProcessingLoop
         }
     }
     Until
-    ($null -eq ((Compare-Object -DifferenceObject @($JobCompletions.Keys) -ReferenceObject @($JobRequired.Name))) -or $StopLoop)
+    ($null -eq ((Compare-Object -DifferenceObject @($JobCompletions.Keys) -ReferenceObject @($JobRequired.Keys))) -or $StopLoop)
     $(-not $FatalFailure)
 }

@@ -38,16 +38,18 @@ function Add-JSMJobFailure
         $true
         {
             $Script:JobFailures.$($Name).FailureCount++
-            $Script:JobFailures.$($Name).FailureType += $FailureType
-            $Script:JobFailures.$($Name).FailedAttempt += $null #will add the attempt object here later after adding attempt parameter and figuring out attempt tracking
+            $Script:JobFailures.$($Name).FailureType.add($FailureType)
+            $Script:JobFailures.$($Name).FailedAttempt.add($Attempt)
         }
         $false
         {
             $Script:JobFailures.$($Name) = [PSCustomObject]@{
                 FailureCount = 1
-                FailureType = @($FailureType)
-                FailedAttempt = @($null) #will add the attempt object here later after adding attempt parameter and figuring out attempt tracking
+                FailureType = [System.Collections.Generic.List[string]]::new()
+                FailedAttempt = [System.Collections.Generic.List[psobject]]::new()
             }
+            $Script:JobFailures.$($Name).FailureType.add($FailureType)
+            $Script:JobFailures.$($Name).FailedAttempt.add($Attempt)
         }
     }
     Add-JSMProcessingStatusEntry -JobName $Name -Message "Job Attempt Failed" -Status $false -EventID 427

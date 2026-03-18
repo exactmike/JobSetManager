@@ -95,6 +95,7 @@ FunctionsToExport = @(
     'New-JSMVariable'
     'Start-JSMJobFailureProcess'
     'Start-JSMNewJobCompletionProcess'
+    'Start-JSMNewJobFailureProcess'
     'Start-JSMPeriodicReportProcess'
     'Remove-JSMJobCompletion'
     'Remove-JSMJobFailure'

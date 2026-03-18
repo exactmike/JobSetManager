@@ -102,7 +102,7 @@ $($script:JSMProcessingLoopStatus | ConvertTo-Html)
 "@
         $getJSMJobSetDiagramSplat = @{
             JobFailure = $JobFailure
-            JobSet = $JobRequired
+            JobSet = @($JobRequired.Values)
             JobCompletion = $JobCompletion
             JobCurrent = $JobCurrent
             Progress = $true
