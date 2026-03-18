@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 We follow https://poshcode.gitbook.io/powershell-practice-and-style unless explicitly overridden.
 
+## Running PowerShell (pwsh) for testing and other reasons
+
+Always use the -noprofile option to avoid loading unnecessary code through a profile script.
+
 ## Module Overview
 
 JobSetManager is a PowerShell job orchestration module (v1.0.0). It manages sets of interdependent background jobs with:
@@ -28,23 +32,28 @@ No external module dependencies. Supports `PSJob` (`Start-Job`) and `ThreadJob` 
 | Function | Role |
 |---|---|
 | `Initialize-TrackingVariable` | Initializes all `$script:` state; idempotent |
-| `Get-JSMJobRequired` | Filters job definitions to those that should run (respects conditions) |
+| `Get-JSMJobRequired` | Filters job definitions to those that should run (respects conditions); returns a hashtable keyed by job name |
 | `Get-JSMJobNext` | Returns jobs ready to start (dependencies met, not yet running/complete) |
 | `Get-JSMJobCurrent` | Returns jobs currently running (checks native job engine + SplitJobGroups) |
 | `Start-JSMJob` | Starts one or more jobs via PSJob or ThreadJob |
 | `Start-JSMNewJobCompletionProcess` | Detects completed jobs, receives results, validates, stores in global variables |
-| `Start-JSMJobFailureProcess` | Handles failed jobs, retries, or marks fatal |
+| `Start-JSMNewJobFailureProcess` | Aggregates failure sources (completion, start, stale) and routes to `Start-JSMJobFailureProcess` |
+| `Start-JSMJobFailureProcess` | Handles failed jobs per-failure: retries or marks fatal |
 | `Test-JSMJobCondition` | Evaluates OnCondition / OnNotCondition lists |
 | `Test-JSMJobResult` | Validates job results against ResultsValidation spec |
+
+### `$JobRequired` — Hashtable keyed by job name
+
+`Get-JSMJobRequired` returns a `[hashtable]` keyed by job name. All downstream functions (`Get-JSMJobNext`, `Get-JSMJobCurrent`, `Start-JSMNewJobCompletionProcess`, `Get-JSMJobPending`) accept `[hashtable]$JobRequired` and iterate via `.Values`. Direct name lookups are O(1) via `$JobRequired[$name]`.
 
 ### Script-Scoped State (inside module)
 | Variable | Type | Purpose |
 |---|---|---|
-| `$script:JobAttempts` | List | All job attempt records |
+| `$script:JobAttempts` | `Collection[PSObject]` | All job attempt records (via `{@()}.Invoke()`) |
 | `$script:JobCompletions` | Hashtable | Completed job names → completion info |
-| `$script:JobFailures` | Hashtable | Failed job names → failure info |
+| `$script:JobFailures` | Hashtable | Failed job names → `PSCustomObject` with `FailureCount [int]`, `FailureType [List[string]]`, `FailedAttempt [List[psobject]]` |
 | `$script:SplitJobGroups` | Hashtable | JobName → `[string[]]` sub-job names (e.g. `Job_JSMPart_1`) |
-| `$script:JSMProcessingLoopStatus` | List | Structured log entries |
+| `$script:JSMProcessingLoopStatus` | `Collection[PSObject]` | Structured log entries (via `{@()}.Invoke()`) |
 | `$script:JSMProcessingStatusEntryID` | Int | Auto-incrementing entry ID |
 | `$script:JSMPeriodicReportSetting` | PSCustomObject | Email report configuration |
 

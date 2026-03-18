@@ -6,7 +6,7 @@ Items discovered during code review. Each entry includes the source location and
 
 ## Incomplete Implementations
 
-### 1. Store actual attempt object in `Add-JSMJobFailure`
+### 1. Store actual attempt object in `Add-JSMJobFailure` - done
 **File:** `Functions/Add-JSMJobFailure.ps1`
 **Status:** Stub — `$Attempt` is accepted as a mandatory parameter but `$null` is stored in `FailedAttempt` in both the new-entry and update-entry branches.
 **Comment in code:** `#will add the attempt object here later after adding attempt parameter and figuring out attempt tracking`
@@ -16,14 +16,14 @@ Items discovered during code review. Each entry includes the source location and
 
 ---
 
-### 2. Per-job clearing in `Clear-JSMJobAttempt`
+### 2. Per-job clearing in `Clear-JSMJobAttempt` - done
 **File:** `Functions/Clear-JSMJobAttempt.ps1`
 **Status:** Commented out — a `SpecificJobAttempt` parameter set (`$JobName` + `$Attempt[]`) and the `Process` block to handle it are fully commented out. Currently only clears all attempts.
 **Intent:** Allow callers to remove individual attempt records by job name and attempt number rather than wiping the entire collection.
 
 ---
 
-### 3. Per-entry clearing in `Clear-JSMProcessingStatusEntry`
+### 3. Per-entry clearing in `Clear-JSMProcessingStatusEntry` - done
 **File:** `Functions/Clear-JSMProcessingStatusEntry.ps1`
 **Status:** Same pattern as item 2 — `SpecificJobAttempt` parameter set and `Process` block commented out. Currently only clears all status entries.
 **Intent:** Allow selective removal of status log entries (e.g. by job name or entry ID) rather than a full reset.
@@ -39,7 +39,7 @@ Items discovered during code review. Each entry includes the source location and
 
 ---
 
-### 5. `RequiredJobs` → hashtable (performance refactor)
+### 5. `RequiredJobs` → hashtable (performance refactor) - done
 **File:** `Issues.md` (unchecked item)
 **Status:** Known issue, not started.
 **Context:** `$JobRequired` is an array throughout `Invoke-JSMProcessingLoop` and related functions. Dependency lookups (e.g. checking if a job name is in the required set) are O(n) array scans. Converting to a hashtable keyed by name would make these O(1). Touches `Get-JSMJobRequired`, `Get-JSMJobNext`, `Get-JSMJobCurrent`, `Start-JSMNewJobCompletionProcess`, and `Invoke-JSMProcessingLoop`.
@@ -55,21 +55,21 @@ Items discovered during code review. Each entry includes the source location and
 
 ## Refactoring / Cleanup
 
-### 7. Extract `NewJobFailures` aggregation to a discrete function
+### 7. Extract `NewJobFailures` aggregation to a discrete function - done
 **File:** `Functions/Invoke-JSMProcessingLoop.ps1` (~line 200)
 **Comment in code:** `#move NewlyFailed handling out to discrete function soon - 20190127`
 **Context:** The block that aggregates `$StartJobFailures`, `$StaleJobFailures`, and the output of `Start-JSMNewJobCompletionProcess` into `$NewJobFailures` and routes it to `Start-JSMJobFailureProcess` is currently inline in the main loop. Extracting it would make the loop body easier to read and consistent with how other steps (`Start-JSMJob`, `Start-JSMNewJobCompletionProcess`, `Start-JSMJobFailureProcess`) are already discrete functions.
 
 ---
 
-### 8. Remove stale "add a check" comment in processing loop
+### 8. Remove stale "add a check" comment in processing loop - done
 **File:** `Functions/Invoke-JSMProcessingLoop.ps1` (~line 237)
 **Comment in code:** `#add a check here for situation all jobs completed and skip if so`
 **Context:** The check (`if ($JobCurrent.count -eq 0 -and $JobPending.count -eq 0)`) already exists directly below this comment. The comment was not removed when the check was added. Safe to delete.
 
 ---
 
-### 9. Clarify commented-out index code in `Set-JSMJobAttempt`
+### 9. Clarify commented-out index code in `Set-JSMJobAttempt` done
 **File:** `Functions/Set-JSMJobAttempt.ps1`
 **Commented-out lines:**
 ```powershell
