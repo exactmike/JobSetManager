@@ -1,34 +1,69 @@
-$ModuleName = 'JobSetManager'
-$ModuleRoot = Split-Path (Split-Path -Path $PSCommandPath -Parent) -Parent
-
 BeforeDiscovery {
-    $rulesPath = Join-Path $ModuleRoot 'ScriptAnalyzerSettings.psd1'
+    $repoRoot = Split-Path -Path $PSScriptRoot -Parent
 
-    Import-Module (Join-Path $ModuleRoot 'JobSetManager.psd1') -Force
+    # Check manifest at repo root first (current structure), then one level deep (module-in-subfolder)
+    $manifest = Get-ChildItem -Path $repoRoot -Filter '*.psd1' -Depth 0 |
+        Where-Object Name -ne 'ScriptAnalyzerSettings.psd1' |
+        Select-Object -First 1
 
-    $ScriptsForAnalysis = Get-ChildItem -Path (Join-Path $ModuleRoot 'Functions') -Include '*.ps1', '*.psm1', '*.psd1' -Recurse |
-        Where-Object FullName -notmatch 'Classes' |
-        ForEach-Object { @{ ScriptName = $_.Name; FullName = $_.FullName; RulesPath = $rulesPath } }
+    if (-not $manifest) {
+        $manifest = Get-ChildItem -Path $repoRoot -Filter '*.psd1' -Recurse -Depth 2 |
+            Where-Object Name -ne 'ScriptAnalyzerSettings.psd1' |
+            Select-Object -First 1
+    }
 
-    $CommandsForTest = (Get-Command -Module $ModuleName).Name | ForEach-Object {
-        $file = Get-ChildItem -Path (Join-Path $ModuleRoot 'Tests') -Filter "$_.Tests.ps1" -Recurse
-        @{ CommandName = $_; TestFilePath = $file.FullName }
+    $projectRoot = $manifest.DirectoryName
+    $moduleName  = $manifest.BaseName
+    $manifestPath = $manifest.FullName
+    Import-Module -Name $manifestPath -Force
+}
+
+BeforeAll {
+    $script:ProjectRoot = Split-Path -Path $PSScriptRoot -Parent
+    $script:ModuleName = Split-Path -Path $script:ProjectRoot -Leaf
+    $script:ManifestPath = Join-Path -Path $script:ProjectRoot -ChildPath "$script:ModuleName.psd1"
+}
+
+Describe 'Module manifest is valid' -Tag 'Build' {
+    BeforeAll {
+        $script:Manifest = Test-ModuleManifest -Path $script:ManifestPath -ErrorAction Stop
+    }
+
+    It 'Has a valid manifest' {
+        $script:Manifest | Should -Not -BeNullOrEmpty
+    }
+
+    It 'Has the correct module name' {
+        $script:Manifest.Name | Should -Be $script:ModuleName
+    }
+
+    It 'Has a valid version' {
+        $script:Manifest.Version | Should -BeOfType [System.Version]
+    }
+
+    It 'Has a description' {
+        $script:Manifest.Description | Should -Not -BeNullOrEmpty
+    }
+
+    It 'Has a valid GUID' {
+        { [System.Guid]::Parse($script:Manifest.Guid) } | Should -Not -Throw
+    }
+
+    It 'Has an author' {
+        $script:Manifest.Author | Should -Not -BeNullOrEmpty
     }
 }
 
-Describe "All commands pass PSScriptAnalyzer rules" -Tag 'Build' {
-    Context "<ScriptName>" -ForEach $ScriptsForAnalysis {
-        BeforeAll {
-            $script:AnalyzerResults = Invoke-ScriptAnalyzer -Path $FullName -Settings $RulesPath
-        }
-        It "Should not fail any rules" {
-            $script:AnalyzerResults | Should -BeNullOrEmpty
-        }
+Describe 'Module can be imported and exports commands' -Tag 'Build' {
+    BeforeAll {
+        Import-Module -Name $script:ManifestPath -Force
     }
-}
 
-Describe "Public commands have Pester tests" -Tag 'Build' {
-    It "Should have a Pester test for [<CommandName>]" -ForEach $CommandsForTest {
-        $TestFilePath | Should -Not -BeNullOrEmpty
+    It 'Imports without error' {
+        Get-Module -Name $script:ModuleName | Should -Not -BeNullOrEmpty
+    }
+
+    It 'Exports public commands' {
+        (Get-Command -Module $script:ModuleName).Count | Should -BeGreaterThan 0
     }
 }

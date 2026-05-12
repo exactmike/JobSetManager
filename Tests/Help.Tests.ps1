@@ -1,10 +1,24 @@
-$ModuleName = 'JobSetManager'
-
 BeforeDiscovery {
-    Import-Module (Join-Path $PSScriptRoot '..\JobSetManager.psd1') -Force
+    $repoRoot = Split-Path -Path $PSScriptRoot -Parent
+
+    # Check manifest at repo root first (current structure), then one level deep (module-in-subfolder)
+    $manifest = Get-ChildItem -Path $repoRoot -Filter '*.psd1' -Depth 0 |
+        Where-Object Name -ne 'ScriptAnalyzerSettings.psd1' |
+        Select-Object -First 1
+
+    if (-not $manifest) {
+        $manifest = Get-ChildItem -Path $repoRoot -Filter '*.psd1' -Recurse -Depth 2 |
+            Where-Object Name -ne 'ScriptAnalyzerSettings.psd1' |
+            Select-Object -First 1
+    }
+
+    $projectRoot = $manifest.DirectoryName
+    $moduleName  = $manifest.BaseName
+    $manifestPath = $manifest.FullName
+    Import-Module -Name $manifestPath -Force
 
     $HelpByCommand = @{}
-    foreach ($function in (Get-Command -Module $ModuleName)) {
+    foreach ($function in (Get-Command -Module $moduleName)) {
         $HelpByCommand[$function.Name] = Get-Help -Name $function.Name -ErrorAction SilentlyContinue
     }
 
@@ -28,11 +42,14 @@ BeforeDiscovery {
     }
 }
 
-Describe "Public commands have comment-based or external help" -Tags 'Build' {
-    BeforeAll {
-        Import-Module (Join-Path $PSScriptRoot '..\JobSetManager.psd1') -Force
-    }
+BeforeAll {
+    $projectRoot = Split-Path -Path $PSScriptRoot -Parent
+    $moduleName = Split-Path -Path $projectRoot -Leaf
+    $manifestPath = Join-Path -Path $projectRoot -ChildPath "$moduleName.psd1"
+    Import-Module -Name $manifestPath -Force
+}
 
+Describe "Public commands have comment-based or external help" -Tag 'Build' {
     It "Should have a Description or Synopsis for [<Name>]" -ForEach $CommandsForHelp {
         $node = Get-Help -Name $Name -ErrorAction SilentlyContinue
         ($node.Description | Out-String) + ($node.Synopsis | Out-String) | Should -Not -BeNullOrEmpty
